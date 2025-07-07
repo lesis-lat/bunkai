@@ -1,45 +1,55 @@
-# .github/workflows/bunkai.yml
+name: 'Bunkai SCA'
+description: 'A minimalist, dependency-aware Software Composition Analysis (SCA) tool for Perl.'
+author: 'LESIS'
+branding:
+  icon: "shield"
+  color: "blue"
 
-name: Bunkai CI
+inputs:
+  perl-version:
+    description: 'The version of Perl to use.'
+    required: false
+    default: '5.36'
+  project-path:
+    description: 'The path to the project to be analyzed by Bunkai.'
+    required: false
+    default: '.'
+  perlcritic-severity:
+    description: 'The severity level for Perl::Critic.'
+    required: false
+    default: '1'
+  perlcritic-paths:
+    description: 'The paths to lint with Perl::Critic.'
+    required: false
+    default: 'lib bunkai.pl'
+  test-command:
+    description: 'The command to run tests with coverage.'
+    required: false
+    default: |
+      PERL5OPT=-MDevel::Cover=-db,coverage_db,-silent,1 prove -lvr tests/
+      cover -report text
+      cover -test
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Perl
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: ${{ inputs.perl-version }}
 
-jobs:
-  test_and_lint:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        perl-version: [ '5.32', '5.34', '5.36' ]
-    name: Perl ${{ matrix.perl-version }}
+    - name: Install Dependencies
+      shell: bash
+      run: cpanm --installdeps --with-develop ${{ inputs.project-path }}
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+    - name: Lint with Perl::Critic
+      shell: bash
+      run: perlcritic --severity ${{ inputs.perlcritic-severity }} ${{ inputs.perlcritic-paths }}
 
-      - name: Set up Perl
-        uses: shogo82148/actions-setup-perl@v1
-        with:
-          perl-version: ${{ matrix.perl-version }}
+    - name: Test with Coverage
+      shell: bash
+      run: ${{ inputs.test-command }}
 
-      - name: Install Dependencies
-        run: cpanm --installdeps --with-develop .
-
-      - name: Lint with Perl::Critic
-        run: perlcritic --severity 1 lib bunkai.pl
-
-      - name: Test with Coverage
-        run: |
-          PERL5OPT=-MDevel::Cover=-db,coverage_db,-silent,1 prove -lvr tests/
-          cover -report text
-          cover -test
-
-      - name: Run Bunkai on an example project
-        run: |
-          mkdir -p example_project
-          echo "requires 'Plack', '==1.0048';" > example_project/cpanfile
-          echo "requires 'Dancer2';" >> example_project/cpanfile
-          perl bunkai.pl --path ./example_project
+    - name: Run Bunkai
+      shell: bash
+      run: perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }}
