@@ -10,17 +10,18 @@ use File::Temp qw(tempdir);
 use Path::Tiny qw(path);
 use Bunkai::Engine::Parser qw(parse_cpanfile);
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 subtest 'with a valid cpanfile' => sub {
-    my $dir = tempdir( CLEANUP => 1 );
+    my $dir      = tempdir( CLEANUP => 1 );
     my $cpanfile = path($dir)->child('cpanfile');
-    $cpanfile->spew("requires 'Mojolicious', '==9.31';\nrequires 'Plack';\n");
+    $cpanfile->spew("requires 'Plack';\nrequires 'Mojolicious', '==9.31';\n");
 
-    my $deps = parse_cpanfile($dir);
+    my $result = parse_cpanfile($dir);
 
+    is( $result->{success}, 1, 'Parsing is marked as successful' );
     is_deeply(
-        [ sort { $a->{module} cmp $b->{module} } @{$deps} ],
+        $result->{data},
         [
             { module => 'Mojolicious', version => '9.31', has_version => 1 },
             { module => 'Plack',       version => undef,  has_version => 0 },
@@ -30,16 +31,19 @@ subtest 'with a valid cpanfile' => sub {
 };
 
 subtest 'with a non-existent cpanfile' => sub {
-    my $dir = tempdir( CLEANUP => 1 );
-    my $deps = parse_cpanfile($dir);
-    is_deeply( $deps, [], 'Returns an empty list for missing cpanfile' );
+    my $dir    = tempdir( CLEANUP => 1 );
+    my $result = parse_cpanfile($dir);
+    is( $result->{success}, 0, 'Parsing is marked as unsuccessful' );
+    is( $result->{reason}, 'cpanfile_not_found', 'Reason is cpanfile_not_found' );
+    is_deeply( $result->{data}, [], 'Data is an empty list for missing cpanfile' );
 };
 
 subtest 'with an empty cpanfile' => sub {
     my $dir = tempdir( CLEANUP => 1 );
     path($dir)->child('cpanfile')->touch;
-    my $deps = parse_cpanfile($dir);
-    is_deeply( $deps, [], 'Returns an empty list for empty cpanfile' );
+    my $result = parse_cpanfile($dir);
+    is( $result->{success}, 1, 'Parsing is marked as successful for empty file' );
+    is_deeply( $result->{data}, [], 'Returns an empty list for empty cpanfile' );
 };
 
 done_testing();
