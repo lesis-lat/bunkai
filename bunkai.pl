@@ -11,10 +11,11 @@ use FindBin;
 use lib './lib';
 
 use Getopt::Long qw(GetOptions);
-use Bunkai::Engine::Parser qw(parse_cpanfile);
-use Bunkai::Utils::Helper  qw(get_interface_info);
+use Bunkai::Engine::Analyzer qw(analyze_dependencies);
+use Bunkai::Engine::Parser   qw(parse_cpanfile);
+use Bunkai::Utils::Helper    qw(get_interface_info);
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 sub main {
     my ($project_path, $show_help);
@@ -38,22 +39,43 @@ sub main {
         return 1;
     }
 
-    my $dependencies = parse_cpanfile($project_path);
-    return render_analysis($dependencies);
+    my $parser_result = parse_cpanfile($project_path);
+
+    if ( !$parser_result->{success} ) {
+        print {*STDERR} "Warning: 'cpanfile' not found in '$project_path'.\n"
+            or croak "Cannot print warning to STDERR: $OS_ERROR";
+        return 1;
+    }
+
+    my $analyzed_deps = analyze_dependencies( $parser_result->{data} );
+    return render_analysis($analyzed_deps);
 }
 
 sub render_analysis {
     my ($dependencies) = @_;
-
     my $exit_code = 0;
-    for my $dep ( sort { $a->{module} cmp $b->{module} } @{$dependencies} ) {
-        if ( $dep->{has_version} ) {
-            printf {*STDOUT} "%-40s %s\n", $dep->{module}, $dep->{version}
-              or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
+
+    for my $dep ( @{$dependencies} ) {
+        my $version_display = $dep->{has_version} ? $dep->{version} : 'not specified';
+        printf {*STDOUT} "%-40s %s\n", $dep->{module}, $version_display
+          or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
+
+        if ( !$dep->{has_version} ) {
+            print {*STDERR} "Warning: Module '$dep->{module}' has no version specified.\n"
+                or croak "Cannot print warning to STDERR: $OS_ERROR";
+            $exit_code = 1;
         }
-        else {
-            warn "Warning: Module '$dep->{module}' has no version specified.\n";
-            $exit_code = 1; # Exit with failure on warnings
+
+        if ( $dep->{is_outdated} ) {
+            print {*STDERR} sprintf "Warning: Module '%s' is outdated. Specified: %s, Latest: %s\n",
+                $dep->{module}, $dep->{version}, $dep->{latest_version}
+              or croak "Cannot print warning to STDERR: $OS_ERROR";
+            $exit_code = 1;
+        }
+        
+        elsif ( $dep->{has_version} && !defined $dep->{latest_version} ) {
+            print {*STDERR} "Warning: Could not fetch latest version for '$dep->{module}'.\n"
+                or croak "Cannot print warning to STDERR: $OS_ERROR";
         }
     }
 

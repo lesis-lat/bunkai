@@ -10,14 +10,14 @@ use Path::Tiny qw(path);
 
 our @EXPORT_OK = qw(parse_cpanfile);
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 sub parse_cpanfile {
     my ($project_path) = @_;
     my $cpanfile_path = path($project_path)->child('cpanfile');
 
     if ( !-f $cpanfile_path ) {
-        return [];
+        return +{ success => 0, reason => 'cpanfile_not_found', data => [] };
     }
 
     my $cpanfile     = Module::CPANfile->load($cpanfile_path);
@@ -25,7 +25,7 @@ sub parse_cpanfile {
     my $module_hash  = $requirements->as_string_hash;
 
     my @dependencies;
-    foreach my $module ( keys %{$module_hash} ) {
+    foreach my $module ( sort keys %{$module_hash} ) {
         my $version = $module_hash->{$module};
 
         $version =~ s{
@@ -41,7 +41,7 @@ sub parse_cpanfile {
         };
     }
 
-    return \@dependencies;
+    return +{ success => 1, data => \@dependencies };
 }
 
 1;

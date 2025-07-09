@@ -8,7 +8,7 @@ use Test::More;
 use lib '../lib/';
 use Bunkai::Utils::Helper qw(get_interface_info);
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 subtest 'interface info retrieval' => sub {
     my $info = get_interface_info();
