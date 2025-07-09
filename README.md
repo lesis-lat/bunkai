@@ -50,7 +50,7 @@ $ perl bunkai.pl --path /path/to/project
 ```bash
 $ perl bunkai.pl --help
 
-Bunkai v0.0.1
+Bunkai v0.0.2
 SCA for Perl Projects
 =====================
     Command          Description
