@@ -7,12 +7,12 @@ use warnings;
 use Const::Fast;
 use Exporter qw(import);
 
-our $VERSION   = '0.0.2';
+our $VERSION   = '0.0.3';
 our @EXPORT_OK = qw(get_interface_info);
 
 const my $INTERFACE_INFO => <<'END_INFO';
 
-Bunkai v0.0.2
+Bunkai v0.0.3
 SCA for Perl Projects
 =====================
     Command          Description
