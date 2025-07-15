@@ -6,7 +6,7 @@
       <img src="https://img.shields.io/badge/license-MIT-blue.svg">
     </a>
      <a href="https://github.com/lesis-lat/bunkai/releases">
-      <img src="https://img.shields.io/badge/version-0.0.1-blue.svg">
+      <img src="https://img.shields.io/badge/version-0.0.3-blue.svg">
     </a>
   </p>
 </p>
@@ -50,7 +50,7 @@ $ perl bunkai.pl --path /path/to/project
 ```bash
 $ perl bunkai.pl --help
 
-Bunkai v0.0.2
+Bunkai v0.0.3
 SCA for Perl Projects
 =====================
     Command          Description
