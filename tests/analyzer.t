@@ -10,7 +10,7 @@ use lib '../lib/';
 
 use Bunkai::Engine::Analyzer qw(analyze_dependencies);
 
-our $VERSION = '0.0.2';
+our $VERSION = '0.0.3';
 
 my $analyzer_mock = Test::MockModule->new('Bunkai::Engine::Analyzer');
 
