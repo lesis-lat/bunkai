@@ -12,10 +12,11 @@ use lib './lib';
 
 use Getopt::Long qw(GetOptions);
 use Bunkai::Engine::Analyzer qw(analyze_dependencies);
+use Bunkai::Engine::Auditor  qw(audit_dependencies);
 use Bunkai::Engine::Parser   qw(parse_cpanfile);
 use Bunkai::Utils::Helper    qw(get_interface_info);
 
-our $VERSION = '0.0.2';
+our $VERSION = '0.0.3';
 
 sub main {
     my ($project_path, $show_help);
@@ -48,7 +49,9 @@ sub main {
     }
 
     my $analyzed_deps = analyze_dependencies( $parser_result->{data} );
-    return render_analysis($analyzed_deps);
+    my $audited_deps = audit_dependencies($analyzed_deps);
+
+    return render_analysis($audited_deps);
 }
 
 sub render_analysis {
@@ -72,10 +75,24 @@ sub render_analysis {
               or croak "Cannot print warning to STDERR: $OS_ERROR";
             $exit_code = 1;
         }
-        
         elsif ( $dep->{has_version} && !defined $dep->{latest_version} ) {
             print {*STDERR} "Warning: Could not fetch latest version for '$dep->{module}'.\n"
                 or croak "Cannot print warning to STDERR: $OS_ERROR";
+        }
+
+        if ( $dep->{has_vulnerabilities} ) {
+            for my $vuln ( @{$dep->{vulnerabilities}} ) {
+                print {*STDERR} sprintf "SECURITY: Module '%s' has vulnerability %s: %s\n",
+                    $dep->{module}, $vuln->{cve_id}, $vuln->{description}
+                  or croak "Cannot print security warning to STDERR: $OS_ERROR";
+
+                if ( $vuln->{fixed_version} ) {
+                    print {*STDERR} sprintf "  Suggest: Upgrade to version %s or later.\n",
+                        $vuln->{fixed_version}
+                      or croak "Cannot print upgrade suggestion to STDERR: $OS_ERROR";
+                }
+            }
+            $exit_code = 1;
         }
     }
 
