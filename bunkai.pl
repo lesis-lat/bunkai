@@ -24,7 +24,8 @@ sub main {
     GetOptions(
         'path=s' => \$project_path,
         'help|h' => \$show_help,
-    ) or croak get_interface_info();
+      )
+      or croak get_interface_info();
 
     if ($show_help) {
         print {*STDOUT} get_interface_info()
@@ -44,14 +45,70 @@ sub main {
 
     if ( !$parser_result->{success} ) {
         print {*STDERR} "Warning: 'cpanfile' not found in '$project_path'.\n"
-            or croak "Cannot print warning to STDERR: $OS_ERROR";
+          or croak "Cannot print warning to STDERR: $OS_ERROR";
         return 1;
     }
 
     my $analyzed_deps = analyze_dependencies( $parser_result->{data} );
-    my $audited_deps = audit_dependencies($analyzed_deps);
+    my $audited_deps  = audit_dependencies($analyzed_deps);
 
     return render_analysis($audited_deps);
+}
+
+sub _generate_report_for_dep {
+    my ($dep) = @_;
+
+    my @report_lines;
+    my $should_fail = 0;
+    my $warning_line;
+    my $suggest_line;
+    my @security_lines;
+    my @error_lines;
+
+    if ( !$dep->{has_version} ) {
+        $warning_line = "WARNING: Module '$dep->{module}' has no version specified.";
+        $should_fail  = 1;
+    }
+    elsif ( $dep->{is_outdated} ) {
+        $warning_line =
+          sprintf q{WARNING: Module '%s' is outdated. Specified: %s, Latest: %s},
+          $dep->{module}, $dep->{version}, $dep->{latest_version};
+        $should_fail = 1;
+    }
+    elsif ( $dep->{has_version} && !defined $dep->{latest_version} ) {
+        $warning_line = sprintf q{WARNING: Could not fetch latest version for '%s'.}, $dep->{module};
+    }
+
+    if ( $dep->{has_vulnerabilities} ) {
+        $should_fail = 1;
+        for my $vuln ( @{ $dep->{vulnerabilities} } ) {
+            if ( $vuln->{type} eq 'error' ) {
+                push @error_lines, $vuln->{description};
+                next;
+            }
+
+            if ( !$suggest_line && defined $vuln->{fixed_version} ) {
+                $suggest_line =
+                  sprintf 'SUGGEST: Upgrade to version %s or later.', $vuln->{fixed_version};
+            }
+
+            my $security_report = sprintf "SECURITY: Module '%s' has vulnerability %s:\n%s",
+              $dep->{module}, $vuln->{cve_id}, $vuln->{description};
+            push @security_lines, $security_report;
+        }
+    }
+
+    if ( !$suggest_line && $dep->{is_outdated} ) {
+        $suggest_line =
+          sprintf 'SUGGEST: Upgrade to version %s or later.', $dep->{latest_version};
+    }
+
+    if ($warning_line)   { push @report_lines, $warning_line; }
+    if ($suggest_line)   { push @report_lines, $suggest_line; }
+    if (@security_lines) { push @report_lines, @security_lines; }
+    if (@error_lines)    { push @report_lines, @error_lines; }
+
+    return ( \@report_lines, $should_fail );
 }
 
 sub render_analysis {
@@ -63,36 +120,15 @@ sub render_analysis {
         printf {*STDOUT} "%-40s %s\n", $dep->{module}, $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 
-        if ( !$dep->{has_version} ) {
-            print {*STDERR} "Warning: Module '$dep->{module}' has no version specified.\n"
-                or croak "Cannot print warning to STDERR: $OS_ERROR";
+        my ( $report_lines, $has_issues ) = _generate_report_for_dep($dep);
+
+        if ($has_issues) {
             $exit_code = 1;
         }
 
-        if ( $dep->{is_outdated} ) {
-            print {*STDERR} sprintf "Warning: Module '%s' is outdated. Specified: %s, Latest: %s\n",
-                $dep->{module}, $dep->{version}, $dep->{latest_version}
-              or croak "Cannot print warning to STDERR: $OS_ERROR";
-            $exit_code = 1;
-        }
-        elsif ( $dep->{has_version} && !defined $dep->{latest_version} ) {
-            print {*STDERR} "Warning: Could not fetch latest version for '$dep->{module}'.\n"
-                or croak "Cannot print warning to STDERR: $OS_ERROR";
-        }
-
-        if ( $dep->{has_vulnerabilities} ) {
-            for my $vuln ( @{$dep->{vulnerabilities}} ) {
-                print {*STDERR} sprintf "SECURITY: Module '%s' has vulnerability %s: %s\n",
-                    $dep->{module}, $vuln->{cve_id}, $vuln->{description}
-                  or croak "Cannot print security warning to STDERR: $OS_ERROR";
-
-                if ( $vuln->{fixed_version} ) {
-                    print {*STDERR} sprintf "  Suggest: Upgrade to version %s or later.\n",
-                        $vuln->{fixed_version}
-                      or croak "Cannot print upgrade suggestion to STDERR: $OS_ERROR";
-                }
-            }
-            $exit_code = 1;
+        if ( @{$report_lines} ) {
+            print {*STDERR} join( "\n", @{$report_lines} ),
+              or croak "Cannot print report to STDERR: $OS_ERROR";
         }
     }
 
