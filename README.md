@@ -64,10 +64,8 @@ SCA for Perl Projects
 Given a project directory with the following `cpanfile`:
 
 ```perl
-requires "Mojo::UserAgent";
-requires "YAML::Tiny", "1.73";
-requires "Find::Lib", "1.04";
-requires "JSON", "4.07";
+requires "CryptX",                          "0.086";
+requires "Net::CIDR::Set",                  "0.13";
 ```
 
 Running Bunkai will produce the following output:
@@ -75,10 +73,41 @@ Running Bunkai will produce the following output:
 ```bash
 $ perl bunkai.pl --path ./path/to/project
 
-Find::Lib                                1.04
-JSON                                     4.07
-Warning: Module 'Mojo::UserAgent' has no version specified.
-YAML::Tiny                               1.73
+CryptX                                   0.086
+WARNING: Module 'CryptX' is outdated. Specified: 0.086, Latest: 0.087
+SUGGEST: Upgrade to version 0.087 or later.
+SECURITY: Module 'CryptX' has vulnerability CVE-2023-36328:
+CryptX (requires 0.086) has 1 advisory
+  * CPANSA-CryptX-2025-40914
+    Perl CryptX before version 0.087 contains a dependency that may be susceptible to an integer overflow.  CryptX embeds a version of the libtommath library that is susceptible to an integer overflow associated with CVE-2023-36328.
+    Affected range: <0.087
+    Fixed range:    >=0.087
+
+    CVEs: CVE-2025-40914, CVE-2023-36328
+
+    References:
+    https://github.com/advisories/GHSA-j3xv-6967-cv88
+    https://github.com/libtom/libtommath/pull/546
+    https://metacpan.org/release/MIK/CryptX-0.086/source/src/ltm/bn_mp_grow.c
+    https://www.cve.org/CVERecord?id=CVE-2023-36328
+
+
+Net::CIDR::Set                           0.13
+WARNING: Module 'Net::CIDR::Set' is outdated. Specified: 0.13, Latest: 0.16
+SUGGEST: Upgrade to version 0.16 or later.
+SECURITY: Module 'Net::CIDR::Set' has vulnerability CVE-2021-47154:
+Net-CIDR-Set (requires 0.13) has 1 advisory
+  * CPANSA-Net-CIDR-Set-2025-40911
+    Net::CIDR::Set versions 0.10 through 0.13 for Perl does not properly handle leading zero characters in IP CIDR address strings, which could allow attackers to bypass access control that is based on IP addresses.  Leading zeros are used to indicate octal numbers, which can confuse users who are intentionally using octal notation, as well as users who believe they are using decimal notation.  Net::CIDR::Set used code from Net::CIDR::Lite, which had a similar vulnerability CVE-2021-47154.
+    Affected range: >=0.10,<=0.13
+    Fixed range:    >=0.14
+
+    CVEs: CVE-2025-40911
+
+    References:
+    https://blog.urth.org/2021/03/29/security-issues-in-perl-ip-address-distros/
+    https://github.com/robrwo/perl-Net-CIDR-Set/commit/be7d91e8446ad8013b08b4be313d666dab003a8a.patch
+    https://metacpan.org/release/RRWO/Net-CIDR-Set-0.14/changes
 ```
 
 The tool will exit with a non-zero status code if any warnings are issued.
