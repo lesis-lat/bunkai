@@ -10,7 +10,7 @@ use Exporter qw(import);
 use Bunkai::Engine::Fetcher qw(fetch_latest_version);
 
 our @EXPORT_OK = qw(analyze_dependencies);
-our $VERSION   = '0.0.2';
+our $VERSION   = '0.0.3';
 
 sub enrich_dependency {
     my ($dependency) = @_;

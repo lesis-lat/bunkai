@@ -4,6 +4,7 @@ requires 'Getopt::Long',     '2.52';
 requires 'Module::CPANfile', '0.9043';
 requires 'Path::Tiny',       '0.144';
 requires 'Const::Fast',      '0.014';
+requires 'CPAN::Audit',      '20250115.001';
 
 on 'test' => sub {
     requires 'Test::More',      '1.302193';
