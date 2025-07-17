@@ -36,7 +36,7 @@ sub find_vulnerabilities_for_module {
 
     waitpid $pid, 0;
 
-    $output =~ s/\s+\z//msx;   
+    $output =~ s/\s+\z//msx;
 
     return [] if !$output;
 
