@@ -10,20 +10,23 @@ use English qw(-no_match_vars);
 use FindBin;
 use lib './lib';
 
+use JSON::PP;
 use Getopt::Long qw(GetOptions);
 use Bunkai::Engine::Analyzer qw(analyze_dependencies);
 use Bunkai::Engine::Auditor  qw(audit_dependencies);
 use Bunkai::Engine::Parser   qw(parse_cpanfile);
 use Bunkai::Utils::Helper    qw(get_interface_info);
+use Bunkai::Utils::Sarif     qw(generate_sarif);
 
 our $VERSION = '0.0.3';
 
 sub main {
-    my ($project_path, $show_help);
+    my ( $project_path, $show_help, $sarif_output_file );
 
     GetOptions(
-        'path=s' => \$project_path,
-        'help|h' => \$show_help,
+        'path=s'    => \$project_path,
+        'sarif|s:s' => \$sarif_output_file,
+        'help|h'    => \$show_help,
       )
       or croak get_interface_info();
 
@@ -52,10 +55,17 @@ sub main {
     my $analyzed_deps = analyze_dependencies( $parser_result->{data} );
     my $audited_deps  = audit_dependencies($analyzed_deps);
 
+    if ( defined $sarif_output_file ) {
+        my $output_filename =
+          $sarif_output_file || 'bunkai_results.sarif';
+        write_sarif_report( $audited_deps, $parser_result->{cpanfile_path},
+            $output_filename );
+    }
+
     return render_analysis($audited_deps);
 }
 
-sub _generate_report_for_dep {
+sub generate_report_for_dep {
     my ($dep) = @_;
 
     my @report_lines;
@@ -120,19 +130,35 @@ sub render_analysis {
         printf {*STDOUT} "%-40s %s\n", $dep->{module}, $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 
-        my ( $report_lines, $has_issues ) = _generate_report_for_dep($dep);
+        my ( $report_lines, $has_issues ) = generate_report_for_dep($dep);
 
         if ($has_issues) {
             $exit_code = 1;
         }
 
         if ( @{$report_lines} ) {
-            print {*STDERR} join( "\n", @{$report_lines} ),
+            print {*STDERR} join( "\n", @{$report_lines} ), "\n"
               or croak "Cannot print report to STDERR: $OS_ERROR";
         }
     }
 
     return $exit_code;
+}
+
+sub write_sarif_report {
+    my ( $dependencies, $cpanfile_path, $output_file ) = @_;
+
+    my $sarif_data = generate_sarif( $dependencies, $cpanfile_path );
+    my $json       = JSON::PP->new->pretty->encode($sarif_data);
+
+    open my $fh, '>', $output_file
+      or croak "Cannot open SARIF output file '$output_file': $OS_ERROR";
+    print {$fh} $json
+      or croak "Cannot write to SARIF output file '$output_file': $OS_ERROR";
+    close $fh
+      or croak "Cannot close SARIF output file '$output_file': $OS_ERROR";
+
+    return;
 }
 
 exit main();
