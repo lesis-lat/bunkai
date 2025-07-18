@@ -12,7 +12,7 @@ use lib '../lib/';
 
 use_ok('Bunkai::Engine::Auditor');
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.0.4';
 
 const my $MOCK_PID => 42;
 local *CORE::GLOBAL::waitpid = sub { return $MOCK_PID; };

@@ -51,7 +51,7 @@ $ perl bunkai.pl --path /path/to/project --sarif /path/to/output.sarif
 ```bash
 $ perl bunkai.pl --help
 
-Bunkai v0.0.3
+Bunkai v0.0.4
 SCA for Perl Projects
 =====================
     Command          Description

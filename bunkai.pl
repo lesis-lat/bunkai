@@ -18,7 +18,7 @@ use Bunkai::Engine::Parser   qw(parse_cpanfile);
 use Bunkai::Utils::Helper    qw(get_interface_info);
 use Bunkai::Utils::Sarif     qw(generate_sarif);
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.0.4';
 
 sub main {
     my ( $project_path, $show_help, $sarif_output_file );

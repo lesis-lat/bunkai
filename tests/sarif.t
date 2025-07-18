@@ -11,7 +11,7 @@ use lib '../lib/';
 
 use Bunkai::Utils::Sarif qw(generate_sarif);
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.0.4';
 
 use Const::Fast;
 const my $RESULTS_NUMBER => 6;
