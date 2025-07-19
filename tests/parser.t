@@ -10,7 +10,7 @@ use File::Temp qw(tempdir);
 use Path::Tiny qw(path);
 use Bunkai::Engine::Parser qw(parse_cpanfile);
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.0.4';
 
 subtest 'with a valid cpanfile' => sub {
     my $dir      = tempdir( CLEANUP => 1 );

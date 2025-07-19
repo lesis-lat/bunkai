@@ -11,7 +11,7 @@ use Symbol qw(gensym);
 use Carp;
 
 our @EXPORT_OK = qw(audit_dependencies);
-our $VERSION   = '0.0.3';
+our $VERSION   = '0.0.4';
 
 sub find_vulnerabilities_for_module {
     my ($dependency) = @_;

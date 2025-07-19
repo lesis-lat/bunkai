@@ -10,14 +10,19 @@ use Path::Tiny qw(path);
 
 our @EXPORT_OK = qw(parse_cpanfile);
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.0.4';
 
 sub parse_cpanfile {
     my ($project_path) = @_;
     my $cpanfile_path = path($project_path)->child('cpanfile');
 
     if ( !-f $cpanfile_path ) {
-        return +{ success => 0, reason => 'cpanfile_not_found', data => [] };
+        return +{
+            success       => 0,
+            reason        => 'cpanfile_not_found',
+            data          => [],
+            cpanfile_path => $cpanfile_path->stringify
+        };
     }
 
     my $cpanfile     = Module::CPANfile->load($cpanfile_path);
@@ -41,7 +46,11 @@ sub parse_cpanfile {
         };
     }
 
-    return +{ success => 1, data => \@dependencies };
+    return +{
+        success       => 1,
+        data          => \@dependencies,
+        cpanfile_path => $cpanfile_path->stringify
+    };
 }
 
 1;

@@ -10,7 +10,7 @@ use lib '../lib/';
 use Bunkai::Engine::Fetcher qw(fetch_latest_version);
 use Carp qw(croak);
 
-our $VERSION = '0.0.3';
+our $VERSION = '0.0.4';
 
 sub MockedClient::module { croak 'MockedClient::module not localized' }
 sub MockedModule::version { croak 'MockedModule::version not localized' }
