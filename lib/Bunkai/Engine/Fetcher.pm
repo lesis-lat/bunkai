@@ -9,7 +9,7 @@ use MetaCPAN::Client;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(fetch_latest_version);
-our $VERSION   = '0.0.2';
+our $VERSION   = '0.0.4';
 
 sub fetch_latest_version {
     my ($module_name) = @_;
