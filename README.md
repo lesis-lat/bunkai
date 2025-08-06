@@ -8,6 +8,8 @@
      <a href="https://github.com/lesis-lat/bunkai/releases">
       <img src="https://img.shields.io/badge/version-0.0.4-blue.svg">
     </a>
+      <img src="https://img.shields.io/badge/coverage-98.2%25-brightgreen.svg">
+    </a>
   </p>
 </p>
 
