@@ -2,6 +2,13 @@ name: Test Coverage
 
 on:
   workflow_call:
+    outputs:
+      coverage_percent:
+        description: "Coverage percentage"
+        value: ${{ jobs.coverage.outputs.coverage_percent }}
+      coverage_badge_url:
+        description: "Coverage badge URL"
+        value: ${{ jobs.coverage.outputs.coverage_badge_url }}
 
 jobs:
   coverage:
