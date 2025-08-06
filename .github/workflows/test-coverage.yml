@@ -24,6 +24,10 @@ jobs:
         run: cpanm -n --installdeps .
         working-directory: ./
 
+      - name: Install bc
+        run: apt-get update && apt-get install -y bc
+        working-directory: ./
+
       - name: Run tests with coverage
         run: PERL5OPT=-MDevel::Cover prove *.t
 
@@ -32,7 +36,13 @@ jobs:
 
       - id: coverage_percent
         name: Extract total coverage percentage
-        run: echo "coverage=$(cover | perl -ne 'print +(split)[-1] if /^Total\b/')" >> $GITHUB_OUTPUT
+        run: |
+          COVERAGE=$(cover | perl -ne 'print +(split)[-1] if /^Total\b/' | tr -d '%')
+          if [ -z "$COVERAGE" ]; then
+            echo "Error: Could not extract coverage percentage"
+            exit 1
+          fi
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
         working-directory: ./tests
 
       - id: set_badge_url
