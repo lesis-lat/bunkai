@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Exporter qw(import);
-use Carp;
+use Carp qw(croak);
 use Const::Fast;
 
 our @EXPORT_OK = qw(generate_sarif);
