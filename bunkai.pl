@@ -7,8 +7,8 @@ use utf8;
 
 use Carp qw(croak);
 use English qw(-no_match_vars);
-use FindBin;
-use lib './lib';
+use FindBin qw($Bin);
+use lib "$Bin/lib";
 
 use JSON::PP;
 use Getopt::Long qw(GetOptions);

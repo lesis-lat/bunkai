@@ -8,7 +8,7 @@ use English qw(-no_match_vars);
 use Exporter qw(import);
 use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
-use Carp;
+use Carp qw(carp);
 
 our @EXPORT_OK = qw(audit_dependencies);
 our $VERSION   = '0.0.4';
