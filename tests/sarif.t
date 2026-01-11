@@ -24,16 +24,16 @@ subtest 'Module loading and basic structure' => sub {
 
     can_ok( 'Bunkai::Utils::Sarif', 'generate_sarif' );
 
-    my $sarif = generate_sarif( [], $CPANFILE_PATH );
+    my $sarif_report = generate_sarif( [], $CPANFILE_PATH );
 
-    isa_ok( $sarif, 'HASH', 'generate_sarif returns a hashref' );
-    is( $sarif->{version}, '2.1.0', 'SARIF report version is 2.1.0' );
+    isa_ok( $sarif_report, 'HASH', 'generate_sarif returns a hashref' );
+    is( $sarif_report -> {version}, '2.1.0', 'SARIF report version is 2.1.0' );
 
-    ok( exists $sarif->{$SCHEMA_KEY}, 'SARIF schema key exists' );
+    ok( exists $sarif_report -> {$SCHEMA_KEY}, 'SARIF schema key exists' );
 
-    is( $sarif->{runs}[0]{tool}{driver}{name},
+    is( $sarif_report -> {runs}[0]{tool}{driver}{name},
         'Bunkai', 'Tool name is correctly set to Bunkai' );
-    is( $sarif->{runs}[0]{tool}{driver}{version},
+    is( $sarif_report -> {runs}[0]{tool}{driver}{version},
         $main::VERSION, 'Tool version is correctly set' );
 };
 
@@ -76,7 +76,7 @@ subtest 'Argument validation' => sub {
 subtest 'SARIF result generation for various dependency states' => sub {
     plan tests => 8;
 
-    my $unpinned_dep = {
+    my $unpinned_dependency = {
         module              => 'Module::NoVersion',
         has_version         => 0,
         is_outdated         => 0,
@@ -84,7 +84,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
         vulnerabilities     => [],
     };
 
-    my $outdated_dep = {
+    my $outdated_dependency = {
         module              => 'Module::Old',
         has_version         => 1,
         version             => '1.0.0',
@@ -94,7 +94,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
         vulnerabilities     => [],
     };
 
-    my $vulnerable_dep = {
+    my $vulnerable_dependency = {
         module              => 'Module::Unsafe',
         has_version         => 1,
         version             => '2.0.0',
@@ -110,7 +110,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
         ],
     };
 
-    my $error_dep = {
+    my $audit_error_dependency = {
         module              => 'Module::AuditError',
         has_vulnerabilities => 1,
         vulnerabilities     => [
@@ -118,7 +118,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
         ]
     };
 
-    my $complex_dep = {
+    my $complex_dependency = {
         module              => 'Module::Complex',
         has_version         => 1,
         version             => '3.0.0',
@@ -136,26 +136,26 @@ subtest 'SARIF result generation for various dependency states' => sub {
     };
 
     my $dependencies =
-      [ $unpinned_dep, $outdated_dep, $vulnerable_dep, $error_dep, $complex_dep ];
+      [ $unpinned_dependency, $outdated_dependency, $vulnerable_dependency, $audit_error_dependency, $complex_dependency ];
 
-    my $sarif   = generate_sarif( $dependencies, $CPANFILE_PATH );
-    my @results = @{ $sarif->{runs}[0]{results} };
+    my $sarif_report   = generate_sarif( $dependencies, $CPANFILE_PATH );
+    my @results = @{ $sarif_report -> {runs}[0]{results} };
 
     is( scalar @results, $RESULTS_NUMBER, 'Correct total number of results generated' );
 
-    is( (scalar grep { $_->{ruleId} eq 'BUNKAI-UNPINNED' } @results), 2, 'Finds 2 unpinned dependency results' );
-    is( (scalar grep { $_->{ruleId} eq 'BUNKAI-OUTDATED' } @results), 2, 'Finds 2 outdated dependency results' );
-    is( (scalar grep { $_->{ruleId} eq 'CVE-2025-10001' } @results), 1, 'Finds 1 CVE vulnerability result' );
-    is( (scalar grep { $_->{ruleId} eq 'CPANSA-Bunkai-123' } @results), 1, 'Finds 1 CPANSA vulnerability result' );
+    is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results), 2, 'Finds 2 unpinned dependency results' );
+    is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-OUTDATED' } @results), 2, 'Finds 2 outdated dependency results' );
+    is( (scalar grep { $_ -> {ruleId} eq 'CVE-2025-10001' } @results), 1, 'Finds 1 CVE vulnerability result' );
+    is( (scalar grep { $_ -> {ruleId} eq 'CPANSA-Bunkai-123' } @results), 1, 'Finds 1 CPANSA vulnerability result' );
 
-    my ($vuln_result) = grep { $_->{ruleId} eq 'CVE-2025-10001' } @results;
-    is( $vuln_result->{level}, 'error', 'Vulnerability level is "error"' );
+    my ($vulnerability_result) = grep { $_ -> {ruleId} eq 'CVE-2025-10001' } @results;
+    is( $vulnerability_result -> {level}, 'error', 'Vulnerability level is "error"' );
 
-    my ($outdated_result) = grep { $_->{ruleId} eq 'BUNKAI-OUTDATED' } @results;
-    is( $outdated_result->{level}, 'warning', 'Outdated level is "warning"' );
+    my ($outdated_result) = grep { $_ -> {ruleId} eq 'BUNKAI-OUTDATED' } @results;
+    is( $outdated_result -> {level}, 'warning', 'Outdated level is "warning"' );
 
-    my ($unpinned_result) = grep { $_->{ruleId} eq 'BUNKAI-UNPINNED' } @results;
-    is( $unpinned_result->{level}, 'warning', 'Unpinned level is "warning"' );
+    my ($unpinned_result) = grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results;
+    is( $unpinned_result -> {level}, 'warning', 'Unpinned level is "warning"' );
 };
 
 done_testing();
