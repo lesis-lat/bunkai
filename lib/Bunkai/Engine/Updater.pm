@@ -58,7 +58,11 @@ sub is_newer_version {
 
     return 1 if !defined $current_parsed || !defined $candidate_parsed;
 
-    return $candidate_parsed > $current_parsed ? 1 : 0;
+    if ( $candidate_parsed > $current_parsed ) {
+        return 1;
+    }
+
+    return 0;
 }
 
 sub plan_cpanfile_updates {

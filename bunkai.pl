@@ -150,7 +150,10 @@ sub render_analysis {
     my $exit_code = 0;
 
     for my $dependency ( @{$dependencies} ) {
-        my $version_display = $dependency -> {has_version} ? $dependency -> {version} : 'not specified';
+        my $version_display = 'not specified';
+        if ( $dependency -> {has_version} ) {
+            $version_display = $dependency -> {version};
+        }
         printf {*STDOUT} "%-40s %s\n", $dependency -> {module}, $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 
