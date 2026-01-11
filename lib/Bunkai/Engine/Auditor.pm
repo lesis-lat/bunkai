@@ -54,7 +54,7 @@ sub find_vulnerabilities_for_module {
     }
 
     my $vulnerability_id = 'N/A';
-    if ( $output =~ m{(CVE-\d{4}-\d+)}xms ) {
+    if ( $output =~ m{(CVE-[0-9]{4}-[0-9]+)}xms ) {
         $vulnerability_id = $1;
     }
     elsif ( $output =~ m{(CPANSA-[\w-]+-\d+-\w*)}xms ) {

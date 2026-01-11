@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use version;
+use English qw(-no_match_vars);
 use Exporter qw(import);
 use Path::Tiny qw(path);
 
@@ -18,7 +19,7 @@ sub parse_version_value {
 
     my $parsed_version = eval { version -> new($value) };
 
-    return if $@;
+    return if $EVAL_ERROR;
 
     return $parsed_version;
 }
@@ -28,7 +29,7 @@ sub extract_version_from_range {
 
     return if !defined $range;
 
-    if ( $range =~ m{([0-9]+(?:\.[0-9]+)*(?:_[0-9]+)?) }xms ) {
+    if ( $range =~ m{([0-9]+(?:[.][0-9]+)*(?:_[0-9]+)?)}xms ) {
         return $1;
     }
 
@@ -103,64 +104,70 @@ sub update_dependency_line {
     my ( $line, $versions_by_module ) = @_;
 
     my $line_ending = q{};
-    if ( $line =~ s/(\R)\z// ) {
+    if ( $line =~ s/(\R)\z//xms ) {
         $line_ending = $1;
     }
 
+    my $requirement_keywords = qr{
+        (?:requires|recommends|suggests|conflicts|test_requires|build_requires|configure_requires|author_requires)
+    }xms;
+    my $module_with_version_pattern = qr{
+        \A
+        (?<prefix>\s*$requirement_keywords\s+)
+        (?<quote>['"])
+        (?<module>[^'"]+)
+        \k<quote>
+        \s*
+        (?:,|=>)
+        \s*
+        (?<version_quote>['"])?
+        (?<version>[^'";\s]+)
+        (?(<version_quote>)\k<version_quote>)
+        \s*
+        ;
+        \s*
+        \z
+    }xms;
+    my $module_without_version_pattern = qr{
+        \A
+        (?<prefix>\s*$requirement_keywords\s+)
+        (?<quote>['"])
+        (?<module>[^'"]+)
+        \k<quote>
+        \s*
+        ;
+        \s*
+        \z
+    }xms;
+
     if (
-        $line =~ m{
-            \A
-            (\s*
-                (?:requires|recommends|suggests|conflicts|test_requires|build_requires|configure_requires|author_requires)
-                \s+
-            )
-            (['"])
-            ([^'"]+)
-            \2
-            \s*
-            (?: , | => )
-            \s*
-            (['"])? ([^'";\s]+) \4?
-            \s*
-            ;
-            \s*
-            \z
-        }xms
+        $line =~ $module_with_version_pattern
       )
     {
-        my ( $prefix, $quote, $module ) = ( $1, $2, $3 );
+        my $prefix = $LAST_PAREN_MATCH{prefix};
+        my $quote = $LAST_PAREN_MATCH{quote};
+        my $module = $LAST_PAREN_MATCH{module};
         my $new_version = $versions_by_module -> {$module};
 
         if ( defined $new_version ) {
-            my $updated_line =
-              $prefix . $quote . $module . $quote . ' => ' . $quote . $new_version . $quote . ';' . $line_ending;
+            my $updated_line = sprintf q{%s%s%s%s => %s%s%s;%s},
+              $prefix, $quote, $module, $quote, $quote, $new_version, $quote, $line_ending;
             return ( $updated_line, 1 );
         }
     }
 
     if (
-        $line =~ m{
-            \A
-            (\s*
-                (?:requires|recommends|suggests|conflicts|test_requires|build_requires|configure_requires|author_requires)
-                \s+
-            )
-            (['"])
-            ([^'"]+)
-            \2
-            \s*
-            ;
-            \s*
-            \z
-        }xms
+        $line =~ $module_without_version_pattern
       )
     {
-        my ( $prefix, $quote, $module ) = ( $1, $2, $3 );
+        my $prefix = $LAST_PAREN_MATCH{prefix};
+        my $quote = $LAST_PAREN_MATCH{quote};
+        my $module = $LAST_PAREN_MATCH{module};
         my $new_version = $versions_by_module -> {$module};
 
         if ( defined $new_version ) {
-            my $updated_line =
-              $prefix . $quote . $module . $quote . ' => ' . $quote . $new_version . $quote . ';' . $line_ending;
+            my $updated_line = sprintf q{%s%s%s%s => %s%s%s;%s},
+              $prefix, $quote, $module, $quote, $quote, $new_version, $quote, $line_ending;
             return ( $updated_line, 1 );
         }
     }
