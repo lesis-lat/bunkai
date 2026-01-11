@@ -29,7 +29,7 @@ sub extract_version_from_range {
 
     return if !defined $range;
 
-    if ( $range =~ m{([0-9]+(?:[.][0-9]+)*(?:_[0-9]+)?)}xms ) {
+    if ( $range =~ m{([[:digit:]]+(?:[.][[:digit:]]+)*(?:_[[:digit:]]+)?)}xms ) {
         return $1;
     }
 
@@ -111,33 +111,40 @@ sub update_dependency_line {
     my $requirement_keywords = qr{
         (?:requires|recommends|suggests|conflicts|test_requires|build_requires|configure_requires|author_requires)
     }xms;
-    my $module_with_version_pattern = qr{
-        \A
+    my $statement_prefix_pattern = qr{
         (?<prefix>\s*$requirement_keywords\s+)
+    }xms;
+    my $quoted_module_pattern = qr{
         (?<quote>['"])
         (?<module>[^'"]+)
         \k<quote>
-        \s*
-        (?:,|=>)
-        \s*
+    }xms;
+    my $version_pattern = qr{
         (?<version_quote>['"])?
         (?<version>[^'";\s]+)
         (?(<version_quote>)\k<version_quote>)
+    }xms;
+    my $statement_end_pattern = qr{
         \s*
         ;
         \s*
         \z
     }xms;
+    my $module_with_version_pattern = qr{
+        \A
+        $statement_prefix_pattern
+        $quoted_module_pattern
+        \s*
+        (?:,|=>)
+        \s*
+        $version_pattern
+        $statement_end_pattern
+    }xms;
     my $module_without_version_pattern = qr{
         \A
-        (?<prefix>\s*$requirement_keywords\s+)
-        (?<quote>['"])
-        (?<module>[^'"]+)
-        \k<quote>
-        \s*
-        ;
-        \s*
-        \z
+        $statement_prefix_pattern
+        $quoted_module_pattern
+        $statement_end_pattern
     }xms;
 
     if (
