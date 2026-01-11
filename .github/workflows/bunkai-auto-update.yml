@@ -10,9 +10,6 @@ on:
         required: false
         default: '[]'
 
-env:
-  BUNKAI_REPOSITORIES: ${{ inputs.repositories != '' && inputs.repositories || format('["{0}"]', github.repository) }}
-
 permissions:
   contents: write
   pull-requests: write
@@ -22,9 +19,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repository: ${{ fromJson(env.BUNKAI_REPOSITORIES) }}
+        repository: ${{ fromJson(steps.set-repositories.outputs.repositories) }}
     runs-on: ubuntu-latest
     steps:
+      - name: Set repositories
+        id: set-repositories
+        run: |
+          repositories_input='${{ inputs.repositories }}'
+          if [ -z "$repositories_input" ] || [ "$repositories_input" = "[]" ]; then
+            echo "repositories=[\"$GITHUB_REPOSITORY\"]" >> "$GITHUB_OUTPUT"
+          else
+            echo "repositories=$repositories_input" >> "$GITHUB_OUTPUT"
+          fi
       - name: Checkout Bunkai
         uses: actions/checkout@v4
         with:
