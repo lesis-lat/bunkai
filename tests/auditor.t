@@ -57,14 +57,26 @@ subtest 'audit_dependencies (main entry point)' => sub {
         $auditor_mock -> redefine(
             enrich_with_vulnerabilities => sub {
                 my ($dependency) = @_;
-                if ( $dependency -> {module} eq 'Module::Vuln' ) {
-                    return { $dependency -> %*, has_vulnerabilities => 1, vulnerabilities => [{ cve_id => 'CVE-FAKE-1' }] };
+                my $module_name = $dependency -> {module};
+                my $module_version = $dependency -> {version};
+                if ( $module_name eq 'Module::Vuln' ) {
+                    return {
+                        module              => $module_name,
+                        version             => $module_version,
+                        has_vulnerabilities => 1,
+                        vulnerabilities     => [{ cve_id => 'CVE-FAKE-1' }],
+                    };
                 }
-                return { $dependency -> %*, has_vulnerabilities => 0, vulnerabilities => [] };
+                return {
+                    module              => $module_name,
+                    version             => $module_version,
+                    has_vulnerabilities => 0,
+                    vulnerabilities     => [],
+                };
             }
         );
         my $result = Bunkai::Engine::Auditor::audit_dependencies($dependencies);
-        is( scalar $result -> @*, 2, 'Returns a list with an item for each dependency' );
+        is( scalar @{$result}, 2, 'Returns a list with an item for each dependency' );
         ok( !$result -> [0]{has_vulnerabilities}, 'First module has no vulnerabilities' );
         ok( $result -> [1]{has_vulnerabilities}, 'Second module has vulnerabilities' );
         is( $result -> [1]{vulnerabilities}[0]{cve_id}, 'CVE-FAKE-1', 'Vulnerability details are present' );

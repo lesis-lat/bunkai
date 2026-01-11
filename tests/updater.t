@@ -8,6 +8,8 @@ use Test::More;
 
 use Bunkai::Engine::Updater qw(plan_cpanfile_updates apply_cpanfile_updates);
 
+our $VERSION = '0.0.4';
+
 subtest 'plan_cpanfile_updates' => sub {
     my $dependencies = [
         +{
@@ -77,3 +79,5 @@ subtest 'apply_cpanfile_updates' => sub {
 };
 
 done_testing;
+
+1;
