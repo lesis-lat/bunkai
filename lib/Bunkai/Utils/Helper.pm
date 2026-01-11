@@ -7,18 +7,19 @@ use warnings;
 use Const::Fast;
 use Exporter qw(import);
 
-our $VERSION   = '0.0.3';
+our $VERSION   = '0.0.4';
 our @EXPORT_OK = qw(get_interface_info);
 
 const my $INTERFACE_INFO => <<'END_INFO';
 
-Bunkai v0.0.3
+Bunkai v0.0.4
 SCA for Perl Projects
 =====================
     Command          Description
     -------          -----------
     -p, --path=PATH      Path to the project containing a cpanfile
     -s, --sarif[=FILE]   Output results to a SARIF file (default: bunkai_results.sarif)
+    -u, --update-cpanfile   Update cpanfile with latest or fixed dependency versions
     -h, --help           Display this help menu
 
 END_INFO

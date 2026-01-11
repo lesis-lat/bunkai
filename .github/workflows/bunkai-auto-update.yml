@@ -1,0 +1,60 @@
+name: Bunkai Auto Update
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      repositories:
+        description: 'JSON array of repositories to scan'
+        required: false
+        default: '[]'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    strategy:
+      fail-fast: false
+      matrix:
+        repository: ${{ fromJson(steps.set-repositories.outputs.repositories) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set repositories
+        id: set-repositories
+        run: |
+          repositories_input='${{ inputs.repositories }}'
+          if [ -z "$repositories_input" ] || [ "$repositories_input" = "[]" ]; then
+            echo "repositories=[\"$GITHUB_REPOSITORY\"]" >> "$GITHUB_OUTPUT"
+          else
+            echo "repositories=$repositories_input" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Checkout Bunkai
+        uses: actions/checkout@v4
+        with:
+          path: bunkai
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repository }}
+          token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
+          path: repo
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.36'
+      - name: Install Bunkai dependencies
+        run: cpanm --installdeps bunkai
+      - name: Update cpanfile
+        run: perl bunkai/bunkai.pl --path repo --update-cpanfile
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: repo
+          commit-message: 'Update cpanfile dependency versions'
+          title: 'Update cpanfile dependency versions'
+          body: 'Automated dependency version updates from Bunkai.'
+          branch: bunkai/auto-update
+          delete-branch: true
