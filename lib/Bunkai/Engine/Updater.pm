@@ -118,7 +118,10 @@ sub update_dependency_line {
             ([^'"]+)
             \2
             \s*
-            (?: , \s* (['"]) ([^'"]*) \4 \s* )?
+            (?: , | => )
+            \s*
+            (['"])? ([^'";\s]+) \4?
+            \s*
             ;
             \s*
             \z
@@ -130,7 +133,34 @@ sub update_dependency_line {
 
         if ( defined $new_version ) {
             my $updated_line =
-              $prefix . $quote . $module . $quote . ', ' . $quote . $new_version . $quote . ';' . $line_ending;
+              $prefix . $quote . $module . $quote . ' => ' . $quote . $new_version . $quote . ';' . $line_ending;
+            return ( $updated_line, 1 );
+        }
+    }
+
+    if (
+        $line =~ m{
+            \A
+            (\s*
+                (?:requires|recommends|suggests|conflicts|test_requires|build_requires|configure_requires|author_requires)
+                \s+
+            )
+            (['"])
+            ([^'"]+)
+            \2
+            \s*
+            ;
+            \s*
+            \z
+        }xms
+      )
+    {
+        my ( $prefix, $quote, $module ) = ( $1, $2, $3 );
+        my $new_version = $versions_by_module -> {$module};
+
+        if ( defined $new_version ) {
+            my $updated_line =
+              $prefix . $quote . $module . $quote . ' => ' . $quote . $new_version . $quote . ';' . $line_ending;
             return ( $updated_line, 1 );
         }
     }
