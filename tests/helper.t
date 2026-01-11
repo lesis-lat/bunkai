@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+package main;
+
 use 5.034;
 use strict;
 use warnings;
@@ -14,7 +16,7 @@ subtest 'interface info retrieval' => sub {
     my $info = get_interface_info();
     like(
         $info,
-        qr{ Bunkai \s v \d+ [.] \d+ [.] \d+ }msx,
+        qr{ Bunkai \s v [0-9]+ [.] [0-9]+ [.] [0-9]+ }msx,
         'Help text contains the tool name and version'
     );
     like( $info, qr{ SCA \s for \s Perl \s Projects }msx, 'Help text contains the description' );

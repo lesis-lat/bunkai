@@ -1,3 +1,5 @@
+package main;
+
 use 5.034;
 use strict;
 use warnings;

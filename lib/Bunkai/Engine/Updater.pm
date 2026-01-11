@@ -5,7 +5,6 @@ use strict;
 use warnings;
 
 use version;
-use English qw(-no_match_vars);
 use Exporter qw(import);
 use Path::Tiny qw(path);
 
@@ -19,7 +18,7 @@ sub parse_version_value {
 
     my $parsed_version = eval { version -> new($value) };
 
-    return if $EVAL_ERROR;
+    return if !defined $parsed_version;
 
     return $parsed_version;
 }

@@ -57,7 +57,7 @@ sub find_vulnerabilities_for_module {
     if ( $output =~ m{(CVE-[0-9]{4}-[0-9]+)}xms ) {
         $vulnerability_id = $1;
     }
-    elsif ( $output =~ m{(CPANSA-[\w-]+-\d+-\w*)}xms ) {
+    elsif ( $output =~ m{(CPANSA-[[:word:]-]+-[0-9]+-[[:word:]]*)}xms ) {
         $vulnerability_id = $1;
     }
 
