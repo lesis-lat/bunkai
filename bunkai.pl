@@ -15,18 +15,20 @@ use Getopt::Long qw(GetOptions);
 use Bunkai::Engine::Analyzer qw(analyze_dependencies);
 use Bunkai::Engine::Auditor  qw(audit_dependencies);
 use Bunkai::Engine::Parser   qw(parse_cpanfile);
+use Bunkai::Engine::Updater  qw(plan_cpanfile_updates apply_cpanfile_updates);
 use Bunkai::Utils::Helper    qw(get_interface_info);
 use Bunkai::Utils::Sarif     qw(generate_sarif);
 
 our $VERSION = '0.0.4';
 
 sub main {
-    my ( $project_path, $show_help, $sarif_output_file );
+    my ( $project_path, $show_help, $sarif_output_file, $update_cpanfile );
 
     GetOptions(
-        'path=s'    => \$project_path,
-        'sarif|s:s' => \$sarif_output_file,
-        'help|h'    => \$show_help,
+        'path=s'            => \$project_path,
+        'sarif|s:s'         => \$sarif_output_file,
+        'update-cpanfile|u' => \$update_cpanfile,
+        'help|h'            => \$show_help,
       )
       or croak get_interface_info();
 
@@ -54,6 +56,28 @@ sub main {
 
     my $analyzed_dependencies = analyze_dependencies( $parser_result -> {data} );
     my $audited_dependencies  = audit_dependencies($analyzed_dependencies);
+
+    if ($update_cpanfile) {
+        my $updates = plan_cpanfile_updates($audited_dependencies);
+        my $updated_count =
+          apply_cpanfile_updates( $parser_result -> {cpanfile_path}, $updates );
+
+        if ( @{$updates} ) {
+            for my $update ( @{$updates} ) {
+                printf {*STDOUT} "UPDATE: %s %s\n", $update -> {module}, $update -> {version}
+                  or croak "Cannot print update info to STDOUT: $OS_ERROR";
+            }
+
+            print {*STDOUT} "Updated cpanfile entries: $updated_count\n"
+              or croak "Cannot print update summary to STDOUT: $OS_ERROR";
+        }
+        else {
+            print {*STDOUT} "No cpanfile updates required.\n"
+              or croak "Cannot print update summary to STDOUT: $OS_ERROR";
+        }
+
+        return 0;
+    }
 
     if ( defined $sarif_output_file ) {
         my $output_filename =
@@ -126,7 +150,10 @@ sub render_analysis {
     my $exit_code = 0;
 
     for my $dependency ( @{$dependencies} ) {
-        my $version_display = $dependency -> {has_version} ? $dependency -> {version} : 'not specified';
+        my $version_display = 'not specified';
+        if ( $dependency -> {has_version} ) {
+            $version_display = $dependency -> {version};
+        }
         printf {*STDOUT} "%-40s %s\n", $dependency -> {module}, $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 

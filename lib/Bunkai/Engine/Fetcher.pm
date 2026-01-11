@@ -19,7 +19,12 @@ sub fetch_latest_version {
 
     try {
         my $module = $metacpan_client -> module($module_name);
-        $version = $module ? $module -> version : undef;
+        if ($module) {
+            $version = $module -> version;
+        }
+        else {
+            $version = undef;
+        }
     }
     catch {
         $version = undef;

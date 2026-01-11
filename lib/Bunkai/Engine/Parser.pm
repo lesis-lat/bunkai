@@ -39,10 +39,17 @@ sub parse_cpanfile {
             \s*
         }{}xms;
 
+        my $module_version;
+        my $has_version = 0;
+        if ( $version ne '0' ) {
+            $module_version = $version;
+            $has_version = 1;
+        }
+
         push @dependencies, +{
             module      => $module,
-            version     => $version eq '0' ? undef : $version,
-            has_version => ( $version ne '0' ? 1 : 0 ),
+            version     => $module_version,
+            has_version => $has_version,
         };
     }
 
