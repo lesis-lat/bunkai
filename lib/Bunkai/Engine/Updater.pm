@@ -108,9 +108,17 @@ sub update_dependency_line {
         $line_ending = $1;
     }
 
-    my $requirement_keywords = qr{
-        (?:requires|recommends|suggests|conflicts|test_requires|build_requires|configure_requires|author_requires)
-    }xms;
+    my @requirement_keywords = qw(
+      requires
+      recommends
+      suggests
+      conflicts
+      test_requires
+      build_requires
+      configure_requires
+      author_requires
+    );
+    my $requirement_keywords = qr{(?:@{[ join q{|}, @requirement_keywords ]})}xms;
     my $statement_prefix_pattern = qr{
         (?<prefix>\s*$requirement_keywords\s+)
     }xms;
@@ -119,10 +127,13 @@ sub update_dependency_line {
         (?<module>[^'"]+)
         \k<quote>
     }xms;
+    my $version_quote_pattern = qr{(?<version_quote>['"])?}xms;
+    my $version_value_pattern = qr{(?<version>[^'";\s]+)}xms;
+    my $version_end_quote_pattern = qr{(?(<version_quote>)\k<version_quote>)}xms;
     my $version_pattern = qr{
-        (?<version_quote>['"])?
-        (?<version>[^'";\s]+)
-        (?(<version_quote>)\k<version_quote>)
+        $version_quote_pattern
+        $version_value_pattern
+        $version_end_quote_pattern
     }xms;
     my $statement_end_pattern = qr{
         \s*
