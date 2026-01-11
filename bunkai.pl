@@ -46,27 +46,27 @@ sub main {
 
     my $parser_result = parse_cpanfile($project_path);
 
-    if ( !$parser_result->{success} ) {
+    if ( !$parser_result -> {success} ) {
         print {*STDERR} "Warning: 'cpanfile' not found in '$project_path'.\n"
           or croak "Cannot print warning to STDERR: $OS_ERROR";
         return 1;
     }
 
-    my $analyzed_deps = analyze_dependencies( $parser_result->{data} );
-    my $audited_deps  = audit_dependencies($analyzed_deps);
+    my $analyzed_dependencies = analyze_dependencies( $parser_result -> {data} );
+    my $audited_dependencies  = audit_dependencies($analyzed_dependencies);
 
     if ( defined $sarif_output_file ) {
         my $output_filename =
           $sarif_output_file || 'bunkai_results.sarif';
-        write_sarif_report( $audited_deps, $parser_result->{cpanfile_path},
+        write_sarif_report( $audited_dependencies, $parser_result -> {cpanfile_path},
             $output_filename );
     }
 
-    return render_analysis($audited_deps);
+    return render_analysis($audited_dependencies);
 }
 
-sub generate_report_for_dep {
-    my ($dep) = @_;
+sub generate_report_for_dependency {
+    my ($dependency) = @_;
 
     my @report_lines;
     my $should_fail = 0;
@@ -75,42 +75,42 @@ sub generate_report_for_dep {
     my @security_lines;
     my @error_lines;
 
-    if ( !$dep->{has_version} ) {
-        $warning_line = "WARNING: Module '$dep->{module}' has no version specified.";
+    if ( !$dependency -> {has_version} ) {
+        $warning_line = "WARNING: Module '$dependency -> {module}' has no version specified.";
         $should_fail  = 1;
     }
-    elsif ( $dep->{is_outdated} ) {
+    elsif ( $dependency -> {is_outdated} ) {
         $warning_line =
           sprintf q{WARNING: Module '%s' is outdated. Specified: %s, Latest: %s},
-          $dep->{module}, $dep->{version}, $dep->{latest_version};
+          $dependency -> {module}, $dependency -> {version}, $dependency -> {latest_version};
         $should_fail = 1;
     }
-    elsif ( $dep->{has_version} && !defined $dep->{latest_version} ) {
-        $warning_line = sprintf q{WARNING: Could not fetch latest version for '%s'.}, $dep->{module};
+    elsif ( $dependency -> {has_version} && !defined $dependency -> {latest_version} ) {
+        $warning_line = sprintf q{WARNING: Could not fetch latest version for '%s'.}, $dependency -> {module};
     }
 
-    if ( $dep->{has_vulnerabilities} ) {
+    if ( $dependency -> {has_vulnerabilities} ) {
         $should_fail = 1;
-        for my $vuln ( @{ $dep->{vulnerabilities} } ) {
-            if ( $vuln->{type} eq 'error' ) {
-                push @error_lines, $vuln->{description};
+        for my $vulnerability ( @{ $dependency -> {vulnerabilities} } ) {
+            if ( $vulnerability -> {type} eq 'error' ) {
+                push @error_lines, $vulnerability -> {description};
                 next;
             }
 
-            if ( !$suggest_line && defined $vuln->{fixed_version} ) {
+            if ( !$suggest_line && defined $vulnerability -> {fixed_version} ) {
                 $suggest_line =
-                  sprintf 'SUGGEST: Upgrade to version %s or later.', $vuln->{fixed_version};
+                  sprintf 'SUGGEST: Upgrade to version %s or later.', $vulnerability -> {fixed_version};
             }
 
             my $security_report = sprintf "SECURITY: Module '%s' has vulnerability %s:\n%s",
-              $dep->{module}, $vuln->{cve_id}, $vuln->{description};
+              $dependency -> {module}, $vulnerability -> {cve_id}, $vulnerability -> {description};
             push @security_lines, $security_report;
         }
     }
 
-    if ( !$suggest_line && $dep->{is_outdated} ) {
+    if ( !$suggest_line && $dependency -> {is_outdated} ) {
         $suggest_line =
-          sprintf 'SUGGEST: Upgrade to version %s or later.', $dep->{latest_version};
+          sprintf 'SUGGEST: Upgrade to version %s or later.', $dependency -> {latest_version};
     }
 
     if ($warning_line)   { push @report_lines, $warning_line; }
@@ -125,12 +125,12 @@ sub render_analysis {
     my ($dependencies) = @_;
     my $exit_code = 0;
 
-    for my $dep ( @{$dependencies} ) {
-        my $version_display = $dep->{has_version} ? $dep->{version} : 'not specified';
-        printf {*STDOUT} "%-40s %s\n", $dep->{module}, $version_display
+    for my $dependency ( @{$dependencies} ) {
+        my $version_display = $dependency -> {has_version} ? $dependency -> {version} : 'not specified';
+        printf {*STDOUT} "%-40s %s\n", $dependency -> {module}, $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 
-        my ( $report_lines, $has_issues ) = generate_report_for_dep($dep);
+        my ( $report_lines, $has_issues ) = generate_report_for_dependency($dependency);
 
         if ($has_issues) {
             $exit_code = 1;
@@ -149,7 +149,7 @@ sub write_sarif_report {
     my ( $dependencies, $cpanfile_path, $output_file ) = @_;
 
     my $sarif_data = generate_sarif( $dependencies, $cpanfile_path );
-    my $json       = JSON::PP->new->pretty->encode($sarif_data);
+    my $json       = JSON::PP -> new -> pretty -> encode($sarif_data);
 
     open my $fh, '>', $output_file
       or croak "Cannot open SARIF output file '$output_file': $OS_ERROR";

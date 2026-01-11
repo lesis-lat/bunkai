@@ -11,7 +11,6 @@ use Const::Fast;
 our @EXPORT_OK = qw(generate_sarif);
 our $VERSION   = '0.0.3';
 
-# lexical, read-only variable for the ASCII value of '$'.
 const my $ASCII_DOLLAR_SIGN => 36;
 
 sub create_sarif_location {
@@ -28,12 +27,12 @@ sub create_sarif_location {
 }
 
 sub format_vulnerability_as_sarif_result {
-    my ( $dep, $vuln, $location ) = @_;
+    my ( $dependency, $vulnerability, $location ) = @_;
 
-    my $rule_id = $vuln->{cve_id} // 'BUNKAI-VULN-UNKNOWN';
+    my $rule_id = $vulnerability -> {cve_id} // 'BUNKAI-VULN-UNKNOWN';
     my $message =
-      sprintf 'Module \'%s\' has vulnerability %s: %s', $dep->{module}, $rule_id,
-      $vuln->{description};
+      sprintf 'Module \'%s\' has vulnerability %s: %s', $dependency -> {module}, $rule_id,
+      $vulnerability -> {description};
 
     return +{
         ruleId    => $rule_id,
@@ -44,22 +43,22 @@ sub format_vulnerability_as_sarif_result {
 }
 
 sub format_unpinned_as_sarif_result {
-    my ( $dep, $location ) = @_;
+    my ( $dependency, $location ) = @_;
 
     return +{
         ruleId    => 'BUNKAI-UNPINNED',
         level     => 'warning',
-        message   => +{ text => "Module '$dep->{module}' has no version specified." },
+        message   => +{ text => "Module '$dependency -> {module}' has no version specified." },
         locations => $location,
     };
 }
 
 sub format_outdated_as_sarif_result {
-    my ( $dep, $location ) = @_;
+    my ( $dependency, $location ) = @_;
 
     my $message =
       sprintf 'Module \'%s\' is outdated. Specified: %s, Latest: %s',
-      $dep->{module}, $dep->{version}, $dep->{latest_version};
+      $dependency -> {module}, $dependency -> {version}, $dependency -> {latest_version};
 
     return +{
         ruleId    => 'BUNKAI-OUTDATED',
@@ -70,23 +69,23 @@ sub format_outdated_as_sarif_result {
 }
 
 sub map_dependency_to_sarif_results {
-    my ( $dep, $cpanfile_path ) = @_;
+    my ( $dependency, $cpanfile_path ) = @_;
 
     my @results;
     my $location = create_sarif_location($cpanfile_path);
 
-    if ( !$dep->{has_version} ) {
-        push @results, format_unpinned_as_sarif_result( $dep, $location );
+    if ( !$dependency -> {has_version} ) {
+        push @results, format_unpinned_as_sarif_result( $dependency, $location );
     }
-    elsif ( $dep->{is_outdated} ) {
-        push @results, format_outdated_as_sarif_result( $dep, $location );
+    elsif ( $dependency -> {is_outdated} ) {
+        push @results, format_outdated_as_sarif_result( $dependency, $location );
     }
 
-    if ( $dep->{has_vulnerabilities} ) {
-        for my $vuln ( @{ $dep->{vulnerabilities} } ) {
-            next if $vuln->{type} eq 'error';
+    if ( $dependency -> {has_vulnerabilities} ) {
+        for my $vulnerability ( @{ $dependency -> {vulnerabilities} } ) {
+            next if $vulnerability -> {type} eq 'error';
             push @results,
-              format_vulnerability_as_sarif_result( $dep, $vuln, $location );
+              format_vulnerability_as_sarif_result( $dependency, $vulnerability, $location );
         }
     }
 
@@ -105,7 +104,6 @@ sub generate_sarif {
       map { map_dependency_to_sarif_results( $_, $cpanfile_path ) } @{$dependencies};
 
     return +{
-        # construct the key by generating the '$' from its named constant
         chr($ASCII_DOLLAR_SIGN) . 'schema' =>
 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
         version => '2.1.0',

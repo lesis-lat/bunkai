@@ -16,25 +16,25 @@ our $VERSION   = '0.0.4';
 sub find_vulnerabilities_for_module {
     my ($dependency) = @_;
 
-    my @command = ( 'cpan-audit', 'module', $dependency->{module} );
-    if ($dependency->{has_version}) {
-        push @command, $dependency->{version};
+    my @command = ( 'cpan-audit', 'module', $dependency -> {module} );
+    if ($dependency -> {has_version}) {
+        push @command, $dependency -> {version};
     }
 
     my $output;
-    my $err_handle = gensym;
-    my $pid = open3(my $in_handle, my $out_handle, $err_handle, @command);
+    my $error_handle = gensym;
+    my $process_id = open3(my $in_handle, my $out_handle, $error_handle, @command);
 
     close $in_handle or carp "Could not close input handle: $OS_ERROR";
 
     {
         local $INPUT_RECORD_SEPARATOR = undef;
         my $stdout = <$out_handle>;
-        my $stderr = <$err_handle>;
+        my $stderr = <$error_handle>;
         $output = ($stdout // q{}) . ($stderr // q{});
     }
 
-    waitpid $pid, 0;
+    waitpid $process_id, 0;
 
     $output =~ s/\s+\z//msx;
 
@@ -53,17 +53,17 @@ sub find_vulnerabilities_for_module {
         $fixed_version = $1;
     }
 
-    my $cve_id = 'N/A';
+    my $vulnerability_id = 'N/A';
     if ( $output =~ m{(CVE-\d{4}-\d+)}xms ) {
-        $cve_id = $1;
+        $vulnerability_id = $1;
     }
     elsif ( $output =~ m{(CPANSA-[\w-]+-\d+-\w*)}xms ) {
-        $cve_id = $1;
+        $vulnerability_id = $1;
     }
 
     my $vulnerability = +{
         type          => 'vulnerability',
-        cve_id        => $cve_id,
+        cve_id        => $vulnerability_id,
         description   => $output,
         fixed_version => $fixed_version,
     };
