@@ -9,7 +9,7 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use lib '../lib/';
-use Bunkai::Engine::Fetcher qw(fetch_latest_version);
+use Bunkai::Component::Fetcher qw(fetch_latest_version);
 use Carp qw(croak);
 
 our $VERSION = '0.0.4';
