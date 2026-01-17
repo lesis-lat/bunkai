@@ -12,7 +12,7 @@ use Const::Fast;
 
 use lib '../lib/';
 
-use_ok('Bunkai::Engine::Auditor');
+use_ok('Bunkai::Component::Auditor');
 
 our $VERSION = '0.0.4';
 
@@ -21,11 +21,11 @@ local *CORE::GLOBAL::waitpid = sub { return $MOCK_PID; };
 
 subtest 'enrich_with_vulnerabilities' => sub {
     my $dependency = { module => 'Some::Dependency', version => '0.50' };
-    my $auditor_mock = Test::MockModule -> new('Bunkai::Engine::Auditor');
+    my $auditor_mock = Test::MockModule -> new('Bunkai::Component::Auditor');
 
     subtest 'when no vulnerabilities are found' => sub {
         $auditor_mock -> redefine( find_vulnerabilities_for_module => sub { return [] } );
-        my $result = Bunkai::Engine::Auditor::enrich_with_vulnerabilities($dependency);
+        my $result = Bunkai::Component::Auditor::enrich_with_vulnerabilities($dependency);
 
         ok( !$result -> {has_vulnerabilities}, 'has_vulnerabilities flag is false' );
         is_deeply( $result -> {vulnerabilities}, [], 'vulnerabilities key is an empty arrayref' );
@@ -35,7 +35,7 @@ subtest 'enrich_with_vulnerabilities' => sub {
     subtest 'when vulnerabilities are found' => sub {
         my $mock_vulnerability = { type => 'vulnerability', cve_id => 'CVE-2024-11111' };
         $auditor_mock -> redefine( find_vulnerabilities_for_module => sub { return [$mock_vulnerability] } );
-        my $result = Bunkai::Engine::Auditor::enrich_with_vulnerabilities($dependency);
+        my $result = Bunkai::Component::Auditor::enrich_with_vulnerabilities($dependency);
 
         ok( $result -> {has_vulnerabilities}, 'has_vulnerabilities flag is true' );
         is_deeply( $result -> {vulnerabilities}, [$mock_vulnerability], 'vulnerabilities key contains the correct data' );
@@ -44,10 +44,10 @@ subtest 'enrich_with_vulnerabilities' => sub {
 };
 
 subtest 'audit_dependencies (main entry point)' => sub {
-    my $auditor_mock = Test::MockModule -> new('Bunkai::Engine::Auditor');
+    my $auditor_mock = Test::MockModule -> new('Bunkai::Component::Auditor');
 
     subtest 'with an empty list of dependencies' => sub {
-        my $result = Bunkai::Engine::Auditor::audit_dependencies( [] );
+        my $result = Bunkai::Component::Auditor::audit_dependencies( [] );
         is_deeply( $result, [], 'Returns an empty list for an empty input' );
     };
 
@@ -77,7 +77,7 @@ subtest 'audit_dependencies (main entry point)' => sub {
                 };
             }
         );
-        my $result = Bunkai::Engine::Auditor::audit_dependencies($dependencies);
+        my $result = Bunkai::Component::Auditor::audit_dependencies($dependencies);
         is( scalar @{$result}, 2, 'Returns a list with an item for each dependency' );
         ok( !$result -> [0]{has_vulnerabilities}, 'First module has no vulnerabilities' );
         ok( $result -> [1]{has_vulnerabilities}, 'Second module has vulnerabilities' );

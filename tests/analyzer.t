@@ -10,11 +10,11 @@ use Test::More;
 use Test::MockModule;
 use lib '../lib/';
 
-use Bunkai::Engine::Analyzer qw(analyze_dependencies);
+use Bunkai::Component::Analyzer qw(analyze_dependencies);
 
 our $VERSION = '0.0.4';
 
-my $analyzer_mock = Test::MockModule -> new('Bunkai::Engine::Analyzer');
+my $analyzer_mock = Test::MockModule -> new('Bunkai::Component::Analyzer');
 
 $analyzer_mock -> redefine(
     'fetch_latest_version',

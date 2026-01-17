@@ -8,7 +8,7 @@ use File::Temp qw(tempdir);
 use Path::Tiny qw(path);
 use Test::More;
 
-use Bunkai::Engine::Updater qw(plan_cpanfile_updates apply_cpanfile_updates);
+use Bunkai::Component::Updater qw(plan_cpanfile_updates apply_cpanfile_updates);
 
 our $VERSION = '0.0.4';
 

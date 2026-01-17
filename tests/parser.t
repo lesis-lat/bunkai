@@ -10,7 +10,7 @@ use Test::More;
 use lib '../lib/';
 use File::Temp qw(tempdir);
 use Path::Tiny qw(path);
-use Bunkai::Engine::Parser qw(parse_cpanfile);
+use Bunkai::Component::Parser qw(parse_cpanfile);
 
 our $VERSION = '0.0.4';
 
