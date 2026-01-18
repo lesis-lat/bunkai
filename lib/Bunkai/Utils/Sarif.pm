@@ -29,7 +29,10 @@ sub create_sarif_location {
 sub format_vulnerability_as_sarif_result {
     my ( $dependency, $vulnerability, $location ) = @_;
 
-    my $rule_id = $vulnerability -> {cve_id} // 'BUNKAI-VULN-UNKNOWN';
+    my $rule_id = $vulnerability -> {cve_id};
+    if ( !defined $rule_id || !length $rule_id ) {
+        $rule_id = 'BUNKAI-VULN-UNKNOWN';
+    }
     my $message =
       sprintf 'Module \'%s\' has vulnerability %s: %s', $dependency -> {module}, $rule_id,
       $vulnerability -> {description};
@@ -39,6 +42,7 @@ sub format_vulnerability_as_sarif_result {
         level     => 'error',
         message   => +{ text => $message },
         locations => $location,
+        properties => +{ tags => [ 'security', 'dependency' ] },
     };
 }
 
@@ -50,6 +54,7 @@ sub format_unpinned_as_sarif_result {
         level     => 'warning',
         message   => +{ text => "Module '$dependency -> {module}' has no version specified." },
         locations => $location,
+        properties => +{ tags => ['dependency'] },
     };
 }
 
@@ -65,6 +70,7 @@ sub format_outdated_as_sarif_result {
         level     => 'warning',
         message   => +{ text => $message },
         locations => $location,
+        properties => +{ tags => ['dependency'] },
     };
 }
 
@@ -77,7 +83,7 @@ sub map_dependency_to_sarif_results {
     if ( !$dependency -> {has_version} ) {
         push @results, format_unpinned_as_sarif_result( $dependency, $location );
     }
-    elsif ( $dependency -> {is_outdated} ) {
+    if ( $dependency -> {has_version} && $dependency -> {is_outdated} ) {
         push @results, format_outdated_as_sarif_result( $dependency, $location );
     }
 
@@ -92,6 +98,73 @@ sub map_dependency_to_sarif_results {
     return @results;
 }
 
+sub create_sarif_rule_descriptor {
+    my ( $rule_id, $short_description, $tags, $help_uri, $security_severity ) = @_;
+
+    my %properties = ( tags => $tags );
+    if ( defined $security_severity ) {
+        $properties{'security-severity'} = $security_severity;
+    }
+
+    return +{
+        id               => $rule_id,
+        name             => $rule_id,
+        shortDescription => +{ text => $short_description },
+        helpUri          => $help_uri,
+        properties       => \%properties,
+    };
+}
+
+sub collect_sarif_rules {
+    my ($dependencies) = @_;
+
+    my %rule_map;
+    my $help_uri = 'https://github.com/gunderf/bunkai-sca-tool';
+
+    for my $dependency ( @{$dependencies} ) {
+        if ( !$dependency -> {has_version} ) {
+            $rule_map{'BUNKAI-UNPINNED'} = create_sarif_rule_descriptor(
+                'BUNKAI-UNPINNED',
+                'Dependency is missing a pinned version.',
+                ['dependency'],
+                $help_uri,
+                undef
+            );
+        }
+
+        if ( $dependency -> {has_version} && $dependency -> {is_outdated} ) {
+            $rule_map{'BUNKAI-OUTDATED'} = create_sarif_rule_descriptor(
+                'BUNKAI-OUTDATED',
+                'Dependency version is out of date.',
+                ['dependency'],
+                $help_uri,
+                undef
+            );
+        }
+
+        if ( $dependency -> {has_vulnerabilities} ) {
+            for my $vulnerability ( @{ $dependency -> {vulnerabilities} } ) {
+                if ( $vulnerability -> {type} ne 'error' ) {
+                    my $rule_id = $vulnerability -> {cve_id};
+                    if ( !defined $rule_id || !length $rule_id ) {
+                        $rule_id = 'BUNKAI-VULN-UNKNOWN';
+                    }
+
+                    $rule_map{$rule_id} = create_sarif_rule_descriptor(
+                        $rule_id,
+                        'Dependency vulnerability identified.',
+                        [ 'security', 'dependency' ],
+                        $help_uri,
+                        '8.0'
+                    );
+                }
+            }
+        }
+    }
+
+    return [ values %rule_map ];
+}
+
 sub generate_sarif {
     my ( $dependencies, $cpanfile_path ) = @_;
 
@@ -102,6 +175,7 @@ sub generate_sarif {
 
     my @results =
       map { map_dependency_to_sarif_results( $_, $cpanfile_path ) } @{$dependencies};
+    my $rules = collect_sarif_rules($dependencies);
 
     return +{
         chr($ASCII_DOLLAR_SIGN) . 'schema' =>
@@ -115,6 +189,7 @@ sub generate_sarif {
                         version => $main::VERSION,
                         informationUri =>
                           'https://github.com/gunderf/bunkai-sca-tool',
+                        rules => $rules,
                     },
                 },
                 results => \@results,
