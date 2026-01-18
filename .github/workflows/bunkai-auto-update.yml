@@ -35,11 +35,11 @@ jobs:
             echo "repositories=$repositories_input" >> "$GITHUB_OUTPUT"
           fi
       - name: Checkout Bunkai
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: bunkai
       - name: Checkout target repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ matrix.repository }}
           token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
