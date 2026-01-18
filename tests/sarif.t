@@ -22,7 +22,7 @@ const my $SCHEMA_KEY    => chr($ASCII_DOLLAR_SIGN) . 'schema';
 const my $CPANFILE_PATH => '/path/to/project/cpanfile';
 
 subtest 'Module loading and basic structure' => sub {
-    plan tests => 6;
+    plan tests => 8;
 
     can_ok( 'Bunkai::Utils::Sarif', 'generate_sarif' );
 
@@ -37,6 +37,10 @@ subtest 'Module loading and basic structure' => sub {
         'Bunkai', 'Tool name is correctly set to Bunkai' );
     is( $sarif_report -> {runs}[0]{tool}{driver}{version},
         $main::VERSION, 'Tool version is correctly set' );
+
+    my $rules = $sarif_report -> {runs}[0]{tool}{driver}{rules};
+    isa_ok( $rules, 'ARRAY', 'Tool rules are an array' );
+    is( scalar @{$rules}, 0, 'No rules for an empty dependency list' );
 };
 
 subtest 'Argument validation' => sub {
@@ -76,7 +80,7 @@ subtest 'Argument validation' => sub {
 };
 
 subtest 'SARIF result generation for various dependency states' => sub {
-    plan tests => 8;
+    plan tests => 11;
 
     my $unpinned_dependency = {
         module              => 'Module::NoVersion',
@@ -142,6 +146,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
 
     my $sarif_report   = generate_sarif( $dependencies, $CPANFILE_PATH );
     my @results = @{ $sarif_report -> {runs}[0]{results} };
+    my @rules = @{ $sarif_report -> {runs}[0]{tool}{driver}{rules} };
 
     is( scalar @results, $RESULTS_NUMBER, 'Correct total number of results generated' );
 
@@ -158,6 +163,12 @@ subtest 'SARIF result generation for various dependency states' => sub {
 
     my ($unpinned_result) = grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results;
     is( $unpinned_result -> {level}, 'warning', 'Unpinned level is "warning"' );
+
+    is( scalar @rules, 4, 'Expected rule definitions are present' );
+    my ($unpinned_rule) = grep { $_ -> {id} eq 'BUNKAI-UNPINNED' } @rules;
+    is( $unpinned_rule -> {properties}{tags}[0], 'dependency', 'Unpinned rule is tagged as dependency' );
+    my ($vulnerability_rule) = grep { $_ -> {id} eq 'CVE-2025-10001' } @rules;
+    is( $vulnerability_rule -> {properties}{tags}[0], 'security', 'Vulnerability rule is tagged as security' );
 };
 
 done_testing();
