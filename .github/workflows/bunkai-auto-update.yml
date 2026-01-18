@@ -7,64 +7,30 @@ on:
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
-    inputs:
-      repositories:
-        description: 'JSON array of repositories to scan'
-        required: false
-        default: '[]'
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  set-repositories:
-    runs-on: ubuntu-latest
-    outputs:
-      repositories: ${{ steps.set-repositories.outputs.repositories }}
-    steps:
-      - name: Set repositories
-        id: set-repositories
-        run: |
-          repositories_input='${{ github.event.inputs.repositories }}'
-          if [ -z "$repositories_input" ] || [ "$repositories_input" = "[]" ]; then
-            echo "repositories=[\"$GITHUB_REPOSITORY\"]" >> "$GITHUB_OUTPUT"
-          fi
-          if [ -n "$repositories_input" ] && [ "$repositories_input" != "[]" ]; then
-            echo "repositories=$repositories_input" >> "$GITHUB_OUTPUT"
-          fi
   update:
-    needs: set-repositories
-    strategy:
-      fail-fast: false
-      matrix:
-        repository: ${{ fromJson(needs.set-repositories.outputs.repositories) }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Bunkai
+      - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          path: bunkai
-      - name: Checkout target repository
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ matrix.repository }}
           token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
-          path: repo
       - name: Set up Perl
         uses: shogo82148/actions-setup-perl@v1
         with:
           perl-version: '5.36'
-      - name: Install Bunkai dependencies
-        run: cpanm --installdeps ./bunkai
-      - name: Update cpanfile
-        run: perl bunkai/bunkai.pl --path repo --update-cpanfile
+      - name: Analyze cpanfile
+        run: perl bunkai.pl --path . --sarif bunkai_results.sarif
       - name: Create pull request
         uses: peter-evans/create-pull-request@v8
         with:
-          path: repo
-          commit-message: 'Update cpanfile dependency versions'
-          title: 'Update cpanfile dependency versions'
-          body: 'Automated dependency version updates from Bunkai.'
+          commit-message: 'Add Bunkai dependency analysis report'
+          title: 'Add Bunkai dependency analysis report'
+          body: 'Automated dependency warnings and vulnerability report from Bunkai.'
           branch: bunkai/auto-update
           delete-branch: true
