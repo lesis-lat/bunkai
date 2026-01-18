@@ -118,7 +118,7 @@ Net-CIDR-Set (requires 0.13) has 1 advisory
     https://metacpan.org/release/RRWO/Net-CIDR-Set-0.14/changes
 ```
 
-The tool will exit with a non-zero status code if any warnings are issued.
+The tool will exit with a non-zero status code if any warnings are issued, except when generating SARIF output.
 
 ---
 

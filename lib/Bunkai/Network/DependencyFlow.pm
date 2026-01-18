@@ -73,6 +73,10 @@ sub run_flow {
 
     my $exit_code = render_analysis($audited_dependencies);
 
+    if ( defined $sarif_output_file ) {
+        $exit_code = 0;
+    }
+
     return +{
         success   => 1,
         exit_code => $exit_code,
