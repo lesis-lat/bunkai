@@ -18,22 +18,29 @@ permissions:
   pull-requests: write
 
 jobs:
-  update:
-    strategy:
-      fail-fast: false
-      matrix:
-        repository: ${{ fromJson(steps.set-repositories.outputs.repositories) }}
+  set-repositories:
     runs-on: ubuntu-latest
+    outputs:
+      repositories: ${{ steps.set-repositories.outputs.repositories }}
     steps:
       - name: Set repositories
         id: set-repositories
         run: |
-          repositories_input='${{ inputs.repositories }}'
+          repositories_input='${{ github.event.inputs.repositories }}'
           if [ -z "$repositories_input" ] || [ "$repositories_input" = "[]" ]; then
             echo "repositories=[\"$GITHUB_REPOSITORY\"]" >> "$GITHUB_OUTPUT"
-          else
+          fi
+          if [ -n "$repositories_input" ] && [ "$repositories_input" != "[]" ]; then
             echo "repositories=$repositories_input" >> "$GITHUB_OUTPUT"
           fi
+  update:
+    needs: set-repositories
+    strategy:
+      fail-fast: false
+      matrix:
+        repository: ${{ fromJson(needs.set-repositories.outputs.repositories) }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout Bunkai
         uses: actions/checkout@v6
         with:
