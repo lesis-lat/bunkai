@@ -56,7 +56,7 @@ jobs:
         with:
           perl-version: '5.36'
       - name: Install Bunkai dependencies
-        run: cpanm --installdeps bunkai
+        run: cpanm --installdeps ./bunkai
       - name: Update cpanfile
         run: perl bunkai/bunkai.pl --path repo --update-cpanfile
       - name: Create pull request
