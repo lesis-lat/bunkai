@@ -24,6 +24,8 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with:
           perl-version: '5.36'
+      - name: Install dependencies
+        run: cpanm --installdeps . --notest
       - name: Analyze cpanfile
         run: perl bunkai.pl --path . --sarif bunkai_results.sarif
       - name: Create pull request
