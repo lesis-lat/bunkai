@@ -154,13 +154,10 @@ sub update_dependency_line {
         (?<module>[^'"]+)
         \k<quote>
     }xms;
-    my $version_quote_pattern = qr{(?<version_quote>['"])?}xms;
-    my $version_value_pattern = qr{(?<version>[^'";\s]+)}xms;
-    my $version_end_quote_pattern = qr{(?(<version_quote>)\k<version_quote>)}xms;
     my $version_pattern = qr{
-        $version_quote_pattern
-        $version_value_pattern
-        $version_end_quote_pattern
+        (?<version_quote>['"])?
+        (?<version>[^'";\s]+)
+        (?(<version_quote>)\k<version_quote>)
     }xms;
     my $statement_end_pattern = qr{
         \s*

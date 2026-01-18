@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  security-events: write
 
 jobs:
   update:
@@ -28,11 +29,7 @@ jobs:
         run: cpanm --installdeps . --notest
       - name: Analyze cpanfile
         run: perl bunkai.pl --path . --sarif bunkai_results.sarif
-      - name: Create pull request
-        uses: peter-evans/create-pull-request@v8
+      - name: Upload sarif
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          commit-message: 'Add Bunkai dependency analysis report'
-          title: 'Add Bunkai dependency analysis report'
-          body: 'Automated dependency warnings and vulnerability report from Bunkai.'
-          branch: bunkai/auto-update
-          delete-branch: true
+          sarif_file: bunkai_results.sarif
