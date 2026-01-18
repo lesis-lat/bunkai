@@ -53,7 +53,7 @@ jobs:
       - name: Update cpanfile
         run: perl bunkai/bunkai.pl --path repo --update-cpanfile
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           path: repo
           commit-message: 'Update cpanfile dependency versions'
