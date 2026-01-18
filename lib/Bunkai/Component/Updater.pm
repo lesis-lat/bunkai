@@ -183,9 +183,9 @@ sub update_dependency_line {
     }xms;
 
     if ( $line =~ $module_with_version_pattern ) {
-        my $prefix = $LAST_PAREN_MATCH{prefix};
-        my $quote = $LAST_PAREN_MATCH{quote};
-        my $module = $LAST_PAREN_MATCH{module};
+        my $prefix = $+{prefix};
+        my $quote = $+{quote};
+        my $module = $+{module};
         my $new_version = $versions_by_module -> {$module};
 
         if ( defined $new_version ) {
@@ -196,9 +196,9 @@ sub update_dependency_line {
     }
 
     if ( $line =~ $module_without_version_pattern ) {
-        my $prefix = $LAST_PAREN_MATCH{prefix};
-        my $quote = $LAST_PAREN_MATCH{quote};
-        my $module = $LAST_PAREN_MATCH{module};
+        my $prefix = $+{prefix};
+        my $quote = $+{quote};
+        my $module = $+{module};
         my $new_version = $versions_by_module -> {$module};
 
         if ( defined $new_version ) {
