@@ -159,7 +159,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
     is( $vulnerability_result -> {level}, 'error', 'Vulnerability level is "error"' );
 
     my ($outdated_result) = grep { $_ -> {ruleId} eq 'BUNKAI-OUTDATED' } @results;
-    is( $outdated_result -> {level}, 'warning', 'Outdated level is "warning"' );
+    is( $outdated_result -> {level}, 'low', 'Outdated level is "low"' );
 
     my ($unpinned_result) = grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results;
     is( $unpinned_result -> {level}, 'warning', 'Unpinned level is "warning"' );
