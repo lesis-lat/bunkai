@@ -9,7 +9,7 @@ requires 'MetaCPAN::Client',       '2.033000';
 on 'test' => sub {
     requires 'Perl::Critic',        '1.140';
     requires 'Devel::Cover',        '1.36';
-    requires 'File::Temp',          '0.2311';
+    requires 'File::Temp',          '0.2312';
     requires 'Test::More',          '1.302214';
     requires 'Test::MockModule',    '0.180.0';
     requires 'Test::Exception',     '0.43';
