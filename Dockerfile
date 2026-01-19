@@ -2,6 +2,8 @@ FROM perl:5.42-slim AS builder
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+
 RUN cpanm App::cpanminus
 
 COPY cpanfile /app/
