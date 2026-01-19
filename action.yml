@@ -25,7 +25,7 @@ inputs:
   sarif-output:
     description: 'The SARIF output file path.'
     required: false
-    default: 'bunkai_results.sarif'
+    default: ''
   test-command:
     description: 'The command to run tests with coverage.'
     required: false
@@ -56,4 +56,9 @@ runs:
 
     - name: Run Bunkai
       shell: bash
-      run: perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }} --sarif ${{ inputs.sarif-output }}
+      run: |
+        if [ -n "${{ inputs.sarif-output }}" ]; then
+          perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }} --sarif ${{ inputs.sarif-output }}
+          exit 0
+        fi
+        perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }}

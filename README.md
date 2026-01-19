@@ -75,7 +75,7 @@ You can run Bunkai from the GitHub Marketplace action or the published container
 
 #### Marketplace action with SARIF upload
 
-Create `.github/workflows/bunkai.yml` in your repository:
+Create `.github/workflows/bunkai.yml` in your repository and set `sarif-output` to enable SARIF:
 
 ```yaml
 name: Bunkai SCA
