@@ -67,7 +67,7 @@ sub format_outdated_as_sarif_result {
 
     return +{
         ruleId    => 'BUNKAI-OUTDATED',
-        level     => 'warning',
+        level     => 'low',
         message   => +{ text => $message },
         locations => $location,
         properties => +{ tags => ['dependency'] },
