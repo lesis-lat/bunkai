@@ -22,6 +22,10 @@ inputs:
     description: 'The paths to lint with Perl::Critic.'
     required: false
     default: 'lib bunkai.pl'
+  sarif-output:
+    description: 'The SARIF output file path.'
+    required: false
+    default: ''
   test-command:
     description: 'The command to run tests with coverage.'
     required: false
@@ -52,4 +56,9 @@ runs:
 
     - name: Run Bunkai
       shell: bash
-      run: perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }}
+      run: |
+        if [ -n "${{ inputs.sarif-output }}" ]; then
+          perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }} --sarif ${{ inputs.sarif-output }}
+          exit 0
+        fi
+        perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }}
