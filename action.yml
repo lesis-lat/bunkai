@@ -9,7 +9,7 @@ inputs:
   perl-version:
     description: 'The version of Perl to use.'
     required: false
-    default: '5.36'
+    default: '5.42'
   project-path:
     description: 'The path to the project to be analyzed by Bunkai.'
     required: false
