@@ -67,6 +67,84 @@ SCA for Perl Projects
     -h, --help           Display this help menu
 ```
 
+---
+
+### GitHub Actions
+
+You can run Bunkai from the GitHub Marketplace action or the published container image and upload SARIF results to GitHub Advanced Security.
+
+#### Marketplace action with SARIF upload
+
+Create `.github/workflows/bunkai.yml` in your repository:
+
+```yaml
+name: Bunkai SCA
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  bunkai:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Bunkai
+        uses: lesis-lat/bunkai@v0.0.4
+        with:
+          project-path: .
+          sarif-output: bunkai-results.sarif
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bunkai-results.sarif
+```
+
+#### Container image from GitHub Container Registry
+
+Create `.github/workflows/bunkai-container.yml` in your repository:
+
+```yaml
+name: Bunkai SCA (Container)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+  packages: read
+
+jobs:
+  bunkai:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/lesis-lat/bunkai/bunkai:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Bunkai
+        run: perl /opt/bunkai/bunkai.pl --path . --sarif bunkai-results.sarif
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bunkai-results.sarif
+```
+
 ### Example
 
 Given a project directory with the following `cpanfile`:
