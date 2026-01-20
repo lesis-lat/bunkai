@@ -17,7 +17,7 @@ bash -lc "$test_command"
 
 if [ -n "$sarif_output" ]; then
   perl /app/bunkai.pl --path "$project_path" --sarif "$sarif_output"
-  exit 0
+  exit $?
 fi
 
 perl /app/bunkai.pl --path "$project_path"
