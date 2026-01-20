@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
 project_path="${INPUT_PROJECT_PATH:-.}"
