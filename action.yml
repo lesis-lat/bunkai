@@ -44,11 +44,9 @@ runs:
 
     - name: Install Dependencies
       shell: bash
-      run: cpanm --installdeps --with-develop ${{ github.action_path }}
-
-    - name: Install Project Dependencies
-      shell: bash
-      run: cpanm --installdeps --with-develop ${{ inputs.project-path }}
+      run: |
+        cpanm --installdeps --with-develop ${{ github.action_path }}
+        cpanm --installdeps --with-develop ${{ inputs.project-path }}
 
     - name: Lint with Perl::Critic
       shell: bash
