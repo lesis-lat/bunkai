@@ -18,6 +18,9 @@ COPY --from=builder /usr/local/bin/cpanm /usr/local/bin/
 
 COPY lib /app/lib
 COPY bunkai.pl /app/bunkai.pl
+COPY action-entrypoint.sh /app/action-entrypoint.sh
+
+RUN chmod +x /app/action-entrypoint.sh
 
 ENTRYPOINT ["perl", "/app/bunkai.pl"]
 CMD ["--help"]
