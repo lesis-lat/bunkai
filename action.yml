@@ -46,6 +46,10 @@ runs:
       shell: bash
       run: cpanm --installdeps --with-develop ${{ github.action_path }}
 
+    - name: Install Project Dependencies
+      shell: bash
+      run: cpanm --installdeps --with-develop ${{ inputs.project-path }}
+
     - name: Lint with Perl::Critic
       shell: bash
       run: perlcritic --severity ${{ inputs.perlcritic-severity }} ${{ inputs.perlcritic-paths }}
@@ -59,6 +63,6 @@ runs:
       run: |
         if [ -n "${{ inputs.sarif-output }}" ]; then
           perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }} --sarif ${{ inputs.sarif-output }}
-          exit 0
+          exit $?
         fi
         perl ${{ github.action_path }}/bunkai.pl --path ${{ inputs.project-path }}
