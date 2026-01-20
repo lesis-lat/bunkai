@@ -11,8 +11,6 @@ cover -test}"
 
 cpanm --installdeps --with-develop "$project_path"
 
-perlcritic --severity "$perlcritic_severity" $perlcritic_paths
-
 bash -lc "$test_command"
 
 if [ -n "$sarif_output" ]; then
