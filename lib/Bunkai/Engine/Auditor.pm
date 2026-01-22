@@ -38,7 +38,9 @@ sub find_vulnerabilities_for_module {
 
     $output =~ s/\s+\z//msx;
 
-    return [] if !$output;
+    if ( !$output ) {
+        return [];
+    }
 
     if ( $output =~ m{Error: \s Module .*? \s is \s not \s in \s database}xms ) {
         return [ +{ type => 'error', description => $output } ];
@@ -54,10 +56,11 @@ sub find_vulnerabilities_for_module {
     }
 
     my $vulnerability_id = 'N/A';
-    if ( $output =~ m{(CVE-[0-9]{4}-[0-9]+)}xms ) {
+    my $has_cve_id = $output =~ m{(CVE-[0-9]{4}-[0-9]+)}xms;
+    if ($has_cve_id) {
         $vulnerability_id = $1;
     }
-    elsif ( $output =~ m{(CPANSA-[[:word:]-]+-[0-9]+-[[:word:]]*)}xms ) {
+    if ( !$has_cve_id && $output =~ m{(CPANSA-[[:word:]-]+-[0-9]+-[[:word:]]*)}xms ) {
         $vulnerability_id = $1;
     }
 
