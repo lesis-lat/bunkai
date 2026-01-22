@@ -15,11 +15,15 @@ our $VERSION   = '0.0.4';
 sub parse_version_value {
     my ($value) = @_;
 
-    return if !defined $value;
+    if ( !defined $value ) {
+        return;
+    }
 
     my $parsed_version = eval { version -> new($value) };
 
-    return if $@;
+    if ($@) {
+        return;
+    }
 
     return $parsed_version;
 }

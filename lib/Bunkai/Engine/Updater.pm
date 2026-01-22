@@ -14,11 +14,15 @@ our $VERSION   = '0.0.4';
 sub parse_version_value {
     my ($value) = @_;
 
-    return if !defined $value;
+    if ( !defined $value ) {
+        return;
+    }
 
     my $parsed_version = eval { version -> new($value) };
 
-    return if !defined $parsed_version;
+    if ( !defined $parsed_version ) {
+        return;
+    }
 
     return $parsed_version;
 }
@@ -26,7 +30,9 @@ sub parse_version_value {
 sub extract_version_from_range {
     my ($range) = @_;
 
-    return if !defined $range;
+    if ( !defined $range ) {
+        return;
+    }
 
     if ( $range =~ m{([[:digit:]]+(?:[.][[:digit:]]+)*(?:_[[:digit:]]+)?)}xms ) {
         return $1;
@@ -39,10 +45,14 @@ sub find_fixed_version {
     my ($vulnerabilities) = @_;
 
     for my $vulnerability ( @{$vulnerabilities} ) {
-        next if !$vulnerability -> {fixed_version};
+        if ( !$vulnerability -> {fixed_version} ) {
+            next;
+        }
 
         my $version = extract_version_from_range( $vulnerability -> {fixed_version} );
-        return $version if defined $version;
+        if ( defined $version ) {
+            return $version;
+        }
     }
 
     return;
@@ -51,12 +61,16 @@ sub find_fixed_version {
 sub is_newer_version {
     my ( $current_version, $candidate_version ) = @_;
 
-    return 1 if !defined $current_version;
+    if ( !defined $current_version ) {
+        return 1;
+    }
 
     my $current_parsed  = parse_version_value($current_version);
     my $candidate_parsed = parse_version_value($candidate_version);
 
-    return 1 if !defined $current_parsed || !defined $candidate_parsed;
+    if ( !defined $current_parsed || !defined $candidate_parsed ) {
+        return 1;
+    }
 
     if ( $candidate_parsed > $current_parsed ) {
         return 1;
@@ -80,14 +94,22 @@ sub plan_cpanfile_updates {
             next;
         }
 
-        next if !$dependency -> {has_vulnerabilities};
+        if ( !$dependency -> {has_vulnerabilities} ) {
+            next;
+        }
 
         my $fixed_version = find_fixed_version( $dependency -> {vulnerabilities} );
         my $candidate_version = $fixed_version // $dependency -> {latest_version};
 
-        next if !defined $candidate_version;
-        next if !$dependency -> {has_version};
-        next if !is_newer_version( $dependency -> {version}, $candidate_version );
+        if ( !defined $candidate_version ) {
+            next;
+        }
+        if ( !$dependency -> {has_version} ) {
+            next;
+        }
+        if ( !is_newer_version( $dependency -> {version}, $candidate_version ) ) {
+            next;
+        }
 
         push @updates, +{
             module  => $dependency -> {module},
@@ -192,7 +214,9 @@ sub update_dependency_line {
 sub apply_cpanfile_updates {
     my ( $cpanfile_path, $updates ) = @_;
 
-    return 0 if !@{$updates};
+    if ( !@{$updates} ) {
+        return 0;
+    }
 
     my %versions_by_module = map { $_ -> {module} => $_ -> {version} } @{$updates};
     my $cpanfile = path($cpanfile_path);

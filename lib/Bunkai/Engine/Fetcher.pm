@@ -22,9 +22,6 @@ sub fetch_latest_version {
         if ($module) {
             $version = $module -> version;
         }
-        else {
-            $version = undef;
-        }
     }
     catch {
         $version = undef;
