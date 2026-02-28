@@ -4,7 +4,7 @@ requires 'Const::Fast',            '0.014';
 requires 'CPAN::Audit',            '20250829.001';
 requires 'JSON::PP',               '4.16';
 requires 'Module::CPANfile',       '1.1004';
-requires 'MetaCPAN::Client',       '2.037000';
+requires 'MetaCPAN::Client', '2.039000';
 
 on 'test' => sub {
     requires 'Perl::Critic',        '1.156';
