@@ -112,6 +112,7 @@ jobs:
         with:
           project-path: .
           mode: scan
+          install-project-deps: false
           sarif-output: bunkai-results.sarif
 
       - name: Upload SARIF to GitHub
@@ -133,6 +134,7 @@ jobs:
         with:
           project-path: .
           mode: plan
+          install-project-deps: false
           plan-output-file: bunkai-updates.json
 
       - name: Convert update plan to matrix JSON
@@ -160,6 +162,7 @@ jobs:
         with:
           project-path: .
           mode: apply
+          install-project-deps: false
           apply-update-id: ${{ matrix.update.id }}
 
       - name: Skip PR when cpanfile did not change
@@ -188,6 +191,8 @@ jobs:
 ```
 
 This workflow uploads SARIF to the Security tab on every PR/push run, and only creates fix PRs on non-`pull_request` events (`push`, `schedule`, `workflow_dispatch`).
+
+`install-project-deps` is optional and defaults to `false`. Enable it only when your workflow also needs to install and run repository-specific Perl tooling inside the action container.
 
 #### Container image from GitHub Container Registry
 

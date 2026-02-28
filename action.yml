@@ -49,5 +49,5 @@ outputs:
 
 runs:
   using: docker
-  image: docker://ghcr.io/lesis-lat/bunkai/bunkai:latest
+  image: Dockerfile
   entrypoint: /app/action-entrypoint.sh
