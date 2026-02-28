@@ -53,6 +53,8 @@ Bunkai is a command-line tool that accepts the path to your project directory an
 ```bash
 $ perl bunkai.pl --path /path/to/project
 $ perl bunkai.pl --path /path/to/project --sarif /path/to/output.sarif
+$ perl bunkai.pl --path /path/to/project --plan-updates /path/to/bunkai-updates.json
+$ perl bunkai.pl --path /path/to/project --apply-update-id vulnerability-fix-foo-bar-cve-2026-1234
 $ perl bunkai.pl --path /path/to/project --update-cpanfile
 ```
 ```bash
@@ -66,6 +68,8 @@ SCA for Perl Projects
     -p, --path=PATH      Path to the project containing a cpanfile
     -s, --sarif[=FILE]   Output results to a SARIF file (default: bunkai_results.sarif)
     -u, --update-cpanfile   Update cpanfile with latest or fixed dependency versions
+    -P, --plan-updates[=FILE]   Write issue-scoped cpanfile updates to JSON (default: bunkai_updates.json)
+        --apply-update-id=ID    Apply a single issue-scoped update by ID
     -h, --help           Display this help menu
 ```
 
@@ -75,9 +79,9 @@ SCA for Perl Projects
 
 You can run Bunkai from the GitHub Marketplace action or the published container image and upload SARIF results to GitHub Advanced Security.
 
-#### Marketplace action with SARIF upload
+#### Marketplace action with SARIF upload + one PR per issue
 
-Create `.github/workflows/bunkai.yml` in your repository and set `sarif-output` to enable SARIF:
+Create `.github/workflows/bunkai.yml` in each repository:
 
 ```yaml
 name: Bunkai SCA
@@ -87,33 +91,103 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   security-events: write
 
 jobs:
-  bunkai:
+  scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Bunkai
         uses: lesis-lat/bunkai@v0.0.4
         with:
           project-path: .
-          perlcritic-severity: 1
-          perlcritic-paths: lib bunkai.pl
+          mode: scan
           sarif-output: bunkai-results.sarif
 
       - name: Upload SARIF to GitHub
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bunkai-results.sarif
+
+  plan:
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    outputs:
+      updates: ${{ steps.collect.outputs.updates }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Plan issue updates
+        uses: lesis-lat/bunkai@v0.0.4
+        with:
+          project-path: .
+          mode: plan
+          plan-output-file: bunkai-updates.json
+
+      - name: Convert update plan to matrix JSON
+        id: collect
+        run: |
+          updates="$(jq -c '.issues // []' bunkai-updates.json)"
+          echo "updates=$updates" >> "$GITHUB_OUTPUT"
+
+  create_pr:
+    needs: plan
+    if: ${{ github.event_name != 'pull_request' && needs.plan.outputs.updates != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        update: ${{ fromJson(needs.plan.outputs.updates) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
+
+      - name: Apply a single issue fix
+        uses: lesis-lat/bunkai@v0.0.4
+        with:
+          project-path: .
+          mode: apply
+          apply-update-id: ${{ matrix.update.id }}
+
+      - name: Skip PR when cpanfile did not change
+        id: changes
+        run: |
+          if git diff --quiet -- cpanfile; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open pull request
+        if: ${{ steps.changes.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
+          commit-message: "chore(deps): apply Bunkai fix ${{ matrix.update.id }}"
+          title: "chore(deps): Bunkai fix for ${{ matrix.update.module }} (${{ matrix.update.reason }})"
+          branch: bunkai/${{ matrix.update.id }}
+          delete-branch: true
+          labels: |
+            dependencies
+            security
+          add-paths: |
+            cpanfile
 ```
 
-`perlcritic-severity` and `perlcritic-paths` are optional action inputs used to lint the project before running tests and dependency analysis.
+This workflow uploads SARIF to the Security tab on every PR/push run, and only creates fix PRs on non-`pull_request` events (`push`, `schedule`, `workflow_dispatch`).
 
 #### Container image from GitHub Container Registry
 

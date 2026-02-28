@@ -8,9 +8,16 @@ use File::Temp qw(tempdir);
 use Path::Tiny qw(path);
 use Test::More;
 
-use Bunkai::Component::Updater qw(plan_cpanfile_updates apply_cpanfile_updates);
+use Bunkai::Component::Updater qw(
+  plan_issue_updates
+  plan_single_update_by_issue_id
+  plan_cpanfile_updates
+  apply_cpanfile_updates
+);
+use Const::Fast;
 
 our $VERSION = '0.0.4';
+const my $EXPECTED_ISSUE_COUNT => 4;
 
 subtest 'plan_cpanfile_updates' => sub {
     my $dependencies = [
@@ -51,6 +58,69 @@ subtest 'plan_cpanfile_updates' => sub {
     is( $updates -> [0] -> {version}, '1.20', 'Uses latest version for missing version' );
     is( $updates -> [1] -> {module}, 'Beta', 'Plans update for vulnerable version' );
     is( $updates -> [1] -> {version}, '1.02', 'Uses fixed version for vulnerable module' );
+};
+
+subtest 'plan_issue_updates and single-issue selection' => sub {
+    my $dependencies = [
+        +{
+            module              => 'Alpha',
+            version             => undef,
+            has_version         => 0,
+            is_outdated         => 0,
+            latest_version      => '1.20',
+            has_vulnerabilities => 0,
+            vulnerabilities     => [],
+        },
+        +{
+            module              => 'Beta',
+            version             => '1.00',
+            has_version         => 1,
+            is_outdated         => 1,
+            latest_version      => '1.05',
+            has_vulnerabilities => 1,
+            vulnerabilities     => [
+                +{
+                    type          => 'vulnerability',
+                    cve_id        => 'CVE-2026-12345',
+                    fixed_version => '>=1.02',
+                },
+                +{
+                    type          => 'vulnerability',
+                    cve_id        => 'CVE-2026-98765',
+                    fixed_version => '>=1.03',
+                },
+            ],
+        },
+    ];
+
+    my $issues = plan_issue_updates($dependencies);
+
+    is(
+        scalar @{$issues},
+        $EXPECTED_ISSUE_COUNT,
+        'Plans issue-scoped updates for missing, outdated, and each vulnerability finding'
+    );
+    ok( ( scalar grep { $_ -> {id} eq 'missing-version-alpha' } @{$issues} ) > 0,
+        'Includes deterministic issue id for missing version' );
+    ok( ( scalar grep { $_ -> {id} eq 'outdated-beta' } @{$issues} ) > 0,
+        'Includes deterministic issue id for outdated dependency' );
+    ok( ( scalar grep { $_ -> {id} eq 'vulnerability-fix-beta-cve-2026-12345' } @{$issues} ) > 0,
+        'Includes deterministic issue id for vulnerability fix' );
+    ok( ( scalar grep { $_ -> {id} eq 'vulnerability-fix-beta-cve-2026-98765' } @{$issues} ) > 0,
+        'Includes deterministic issue id for second vulnerability fix' );
+
+    my $single = plan_single_update_by_issue_id( $dependencies, 'vulnerability-fix-beta-cve-2026-12345' );
+    is_deeply(
+        $single,
+        [
+            +{
+                module  => 'Beta',
+                version => '1.02',
+                reason  => 'vulnerability_fix',
+            },
+        ],
+        'Selects a single cpanfile update entry for a specific issue id'
+    );
 };
 
 subtest 'apply_cpanfile_updates' => sub {

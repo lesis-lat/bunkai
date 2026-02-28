@@ -17,6 +17,7 @@ use_ok('Bunkai::Component::Auditor');
 our $VERSION = '0.0.4';
 
 const my $MOCK_PID => 42;
+const my $EXPECTED_PARSED_FINDINGS => 3;
 local *CORE::GLOBAL::waitpid = sub { return $MOCK_PID; };
 
 subtest 'enrich_with_vulnerabilities' => sub {
@@ -60,7 +61,12 @@ subtest 'find_vulnerabilities_for_module handles execution failures' => sub {
     is( $result -> [0]{type}, 'error', 'Marks execution failure as error type' );
     like(
         $result -> [0]{description},
-        qr{ Error: \s Failed \s to \s execute \s cpan-audit \s for \s module \s 'Broken::Audit' }xms,
+        qr{\QError: Failed to execute cpan-audit\E}xms,
+        'Includes execution failure prefix'
+    );
+    like(
+        $result -> [0]{description},
+        qr{\Q'Broken::Audit'\E}xms,
         'Includes module name in execution failure description'
     );
 };
@@ -76,6 +82,37 @@ subtest 'parse_audit_output handles advisory DB misses as audit errors' => sub {
         $result -> [0]{description},
         qr{Error: \s Module \s 'MetaCPAN::Client' \s is \s not \s in \s database}xms,
         'Preserves the audit error description'
+    );
+};
+
+subtest 'parse_audit_output emits one finding per advisory/CVE entry' => sub {
+    my $output = <<'END_AUDIT';
+Example::Module (requires 1.00) has 2 advisories
+  * CPANSA-Example-2026-0001
+    First advisory text.
+    Fixed range:    >=1.10
+
+    CVEs: CVE-2026-1111, CVE-2026-2222
+
+  * CPANSA-Example-2026-0002
+    Second advisory text.
+    Fixed range:    >=1.20
+END_AUDIT
+
+    my $result = Bunkai::Component::Auditor::parse_audit_output($output);
+
+    is( scalar @{$result}, $EXPECTED_PARSED_FINDINGS, 'Returns a finding for each parsed advisory/CVE id' );
+    ok(
+        ( scalar grep { $_ -> {cve_id} eq 'CVE-2026-1111' } @{$result} ) > 0,
+        'Includes first CVE finding'
+    );
+    ok(
+        ( scalar grep { $_ -> {cve_id} eq 'CVE-2026-2222' } @{$result} ) > 0,
+        'Includes second CVE finding'
+    );
+    ok(
+        ( scalar grep { $_ -> {cve_id} eq 'CPANSA-Example-2026-0002' } @{$result} ) > 0,
+        'Falls back to CPANSA id when no CVE is present'
     );
 };
 

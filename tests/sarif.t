@@ -20,6 +20,7 @@ const my $RESULTS_NUMBER => 7;
 const my $ASCII_DOLLAR_SIGN => 36;
 const my $SCHEMA_KEY    => chr($ASCII_DOLLAR_SIGN) . 'schema';
 const my $CPANFILE_PATH => '/path/to/project/cpanfile';
+const my $RULES_NUMBER  => 5;
 
 subtest 'Module loading and basic structure' => sub {
     plan tests => 8;
@@ -165,7 +166,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
     my ($unpinned_result) = grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results;
     is( $unpinned_result -> {level}, 'warning', 'Unpinned level is "warning"' );
 
-    is( scalar @rules, 5, 'Expected rule definitions are present' );
+    is( scalar @rules, $RULES_NUMBER, 'Expected rule definitions are present' );
     my ($unpinned_rule) = grep { $_ -> {id} eq 'BUNKAI-UNPINNED' } @rules;
     is( $unpinned_rule -> {properties}{tags}[0], 'dependency', 'Unpinned rule is tagged as dependency' );
     my ($vulnerability_rule) = grep { $_ -> {id} eq 'CVE-2025-10001' } @rules;

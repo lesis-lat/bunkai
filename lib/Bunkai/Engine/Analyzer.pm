@@ -20,8 +20,7 @@ sub parse_version_value {
     }
 
     my $parsed_version = eval { version -> new($value) };
-
-    if ($@) {
+    if ( !defined $parsed_version ) {
         return;
     }
 

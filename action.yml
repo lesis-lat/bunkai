@@ -10,6 +10,18 @@ inputs:
     description: 'The path to the project to be analyzed by Bunkai.'
     required: false
     default: '.'
+  mode:
+    description: 'Bunkai execution mode: scan, plan, apply, or update.'
+    required: false
+    default: 'scan'
+  plan-output-file:
+    description: 'Output file for planned issue updates (JSON).'
+    required: false
+    default: 'bunkai-updates.json'
+  apply-update-id:
+    description: 'Issue update ID to apply when mode=apply.'
+    required: false
+    default: ''
   perlcritic-severity:
     description: 'The severity level for Perl::Critic.'
     required: false
@@ -17,7 +29,7 @@ inputs:
   perlcritic-paths:
     description: 'The paths to lint with Perl::Critic.'
     required: false
-    default: 'lib bunkai.pl'
+    default: ''
   sarif-output:
     description: 'The SARIF output file path.'
     required: false
@@ -25,10 +37,11 @@ inputs:
   test-command:
     description: 'The command to run tests with coverage.'
     required: false
-    default: |
-      PERL5OPT=-MDevel::Cover=-db,coverage_db,-silent,1 prove -lvr tests/
-      cover -report text
-      cover -test
+    default: ''
+
+outputs:
+  plan-output-file:
+    description: 'Resolved path to the generated updates plan JSON file (mode=plan).'
 
 runs:
   using: docker
