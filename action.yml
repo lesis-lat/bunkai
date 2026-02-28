@@ -14,6 +14,10 @@ inputs:
     description: 'Bunkai execution mode: scan, plan, apply, or update.'
     required: false
     default: 'scan'
+  install-project-deps:
+    description: 'Install project dependencies with cpanm before running Bunkai.'
+    required: false
+    default: 'false'
   plan-output-file:
     description: 'Output file for planned issue updates (JSON).'
     required: false

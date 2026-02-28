@@ -81,7 +81,7 @@ subtest 'Argument validation' => sub {
 };
 
 subtest 'SARIF result generation for various dependency states' => sub {
-    plan tests => 12;
+    plan tests => 13;
 
     my $unpinned_dependency = {
         module              => 'Module::NoVersion',
@@ -124,6 +124,18 @@ subtest 'SARIF result generation for various dependency states' => sub {
             { type => 'error', description => 'Audit process failed.' }
         ]
     };
+    my $advisory_db_miss_dependency = {
+        module              => 'Module::MissingAdvisory',
+        has_version         => 1,
+        is_outdated         => 0,
+        has_vulnerabilities => 1,
+        vulnerabilities     => [
+            {
+                type        => 'error',
+                description => q{Error: Module 'Module::MissingAdvisory' is not in database}
+            }
+        ]
+    };
 
     my $complex_dependency = {
         module              => 'Module::Complex',
@@ -142,8 +154,14 @@ subtest 'SARIF result generation for various dependency states' => sub {
         ],
     };
 
-    my $dependencies =
-      [ $unpinned_dependency, $outdated_dependency, $vulnerable_dependency, $audit_error_dependency, $complex_dependency ];
+    my $dependencies = [
+        $unpinned_dependency,
+        $outdated_dependency,
+        $vulnerable_dependency,
+        $audit_error_dependency,
+        $advisory_db_miss_dependency,
+        $complex_dependency
+    ];
 
     my $sarif_report   = generate_sarif( $dependencies, $CPANFILE_PATH );
     my @results = @{ $sarif_report -> {runs}[0]{results} };
@@ -154,6 +172,11 @@ subtest 'SARIF result generation for various dependency states' => sub {
     is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results), 2, 'Finds 2 unpinned dependency results' );
     is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-OUTDATED' } @results), 2, 'Finds 2 outdated dependency results' );
     is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-AUDIT-ERROR' } @results), 1, 'Finds 1 audit error result' );
+    is(
+        ( scalar grep { $_ -> {message}{text} =~ m{Module::MissingAdvisory}xms } @results ),
+        0,
+        'Skips advisory DB miss errors in SARIF results'
+    );
     is( (scalar grep { $_ -> {ruleId} eq 'CVE-2025-10001' } @results), 1, 'Finds 1 CVE vulnerability result' );
     is( (scalar grep { $_ -> {ruleId} eq 'CPANSA-Bunkai-123' } @results), 1, 'Finds 1 CPANSA vulnerability result' );
 
