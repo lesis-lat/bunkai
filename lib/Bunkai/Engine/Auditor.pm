@@ -9,32 +9,17 @@ use Exporter qw(import);
 use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
 use Carp qw(carp);
+use Try::Tiny;
 
 our @EXPORT_OK = qw(audit_dependencies);
 our $VERSION   = '0.0.4';
 
-sub find_vulnerabilities_for_module {
-    my ($dependency) = @_;
+sub parse_audit_output {
+    my ($output) = @_;
 
-    my @command = ( 'cpan-audit', 'module', $dependency -> {module} );
-    if ($dependency -> {has_version}) {
-        push @command, $dependency -> {version};
+    if ( !defined $output ) {
+        return [];
     }
-
-    my $output;
-    my $error_handle = gensym;
-    my $process_id = open3(my $in_handle, my $out_handle, $error_handle, @command);
-
-    close $in_handle or carp "Could not close input handle: $OS_ERROR";
-
-    {
-        local $INPUT_RECORD_SEPARATOR = undef;
-        my $stdout = <$out_handle>;
-        my $stderr = <$error_handle>;
-        $output = ($stdout // q{}) . ($stderr // q{});
-    }
-
-    waitpid $process_id, 0;
 
     $output =~ s/\s+\z//msx;
 
@@ -72,6 +57,50 @@ sub find_vulnerabilities_for_module {
     };
 
     return [$vulnerability];
+}
+
+sub find_vulnerabilities_for_module {
+    my ($dependency) = @_;
+
+    my @command = ( 'cpan-audit', 'module', $dependency -> {module} );
+    if ($dependency -> {has_version}) {
+        push @command, $dependency -> {version};
+    }
+
+    my $output = q{};
+    my $execution_error;
+
+    try {
+        my $error_handle = gensym;
+        my $process_id = open3(my $in_handle, my $out_handle, $error_handle, @command);
+
+        close $in_handle or carp "Could not close input handle: $OS_ERROR";
+
+        {
+            local $INPUT_RECORD_SEPARATOR = undef;
+            my $stdout = <$out_handle>;
+            my $stderr = <$error_handle>;
+            $output = ($stdout // q{}) . ($stderr // q{});
+        }
+
+        waitpid $process_id, 0;
+    }
+    catch {
+        $execution_error = $_;
+    };
+
+    if ( defined $execution_error ) {
+        chomp $execution_error;
+        return [
+            +{
+                type => 'error',
+                description =>
+                  "Error: Failed to execute cpan-audit for module '$dependency->{module}': $execution_error",
+            }
+        ];
+    }
+
+    return parse_audit_output($output);
 }
 
 sub enrich_with_vulnerabilities {

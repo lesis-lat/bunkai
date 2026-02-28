@@ -11,6 +11,12 @@ cover -test}"
 
 cpanm --installdeps --with-develop "$project_path"
 
+if [ -n "${perlcritic_paths// }" ]; then
+  # Split configured paths into separate CLI args.
+  read -r -a perlcritic_paths_array <<<"$perlcritic_paths"
+  perlcritic --severity "$perlcritic_severity" "${perlcritic_paths_array[@]}"
+fi
+
 bash -lc "$test_command"
 
 if [ -n "$sarif_output" ]; then

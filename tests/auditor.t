@@ -43,6 +43,42 @@ subtest 'enrich_with_vulnerabilities' => sub {
     };
 };
 
+subtest 'find_vulnerabilities_for_module handles execution failures' => sub {
+    my $auditor_mock = Test::MockModule -> new('Bunkai::Component::Auditor');
+    my $dependency = {
+        module      => 'Broken::Audit',
+        has_version => 0,
+    };
+
+    $auditor_mock -> redefine(
+        open3 => sub { die "mocked open3 failure\n" }
+    );
+
+    my $result = Bunkai::Component::Auditor::find_vulnerabilities_for_module($dependency);
+
+    is( scalar @{$result}, 1, 'Returns a single error item when cpan-audit execution fails' );
+    is( $result -> [0]{type}, 'error', 'Marks execution failure as error type' );
+    like(
+        $result -> [0]{description},
+        qr{ Error: \s Failed \s to \s execute \s cpan-audit \s for \s module \s 'Broken::Audit' }xms,
+        'Includes module name in execution failure description'
+    );
+};
+
+subtest 'parse_audit_output handles advisory DB misses as audit errors' => sub {
+    my $result = Bunkai::Component::Auditor::parse_audit_output(
+        "Error: Module 'MetaCPAN::Client' is not in database\n"
+    );
+
+    is( scalar @{$result}, 1, 'Returns a single item when module is not present in CPAN::Audit database' );
+    is( $result -> [0]{type}, 'error', 'Marks advisory DB misses as audit errors' );
+    like(
+        $result -> [0]{description},
+        qr{Error: \s Module \s 'MetaCPAN::Client' \s is \s not \s in \s database}xms,
+        'Preserves the audit error description'
+    );
+};
+
 subtest 'audit_dependencies (main entry point)' => sub {
     my $auditor_mock = Test::MockModule -> new('Bunkai::Component::Auditor');
 

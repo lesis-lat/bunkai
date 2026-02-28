@@ -16,7 +16,7 @@ use Bunkai::Utils::Sarif qw(generate_sarif);
 our $VERSION = '0.0.4';
 
 use Const::Fast;
-const my $RESULTS_NUMBER => 6;
+const my $RESULTS_NUMBER => 7;
 const my $ASCII_DOLLAR_SIGN => 36;
 const my $SCHEMA_KEY    => chr($ASCII_DOLLAR_SIGN) . 'schema';
 const my $CPANFILE_PATH => '/path/to/project/cpanfile';
@@ -80,7 +80,7 @@ subtest 'Argument validation' => sub {
 };
 
 subtest 'SARIF result generation for various dependency states' => sub {
-    plan tests => 11;
+    plan tests => 12;
 
     my $unpinned_dependency = {
         module              => 'Module::NoVersion',
@@ -152,6 +152,7 @@ subtest 'SARIF result generation for various dependency states' => sub {
 
     is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results), 2, 'Finds 2 unpinned dependency results' );
     is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-OUTDATED' } @results), 2, 'Finds 2 outdated dependency results' );
+    is( (scalar grep { $_ -> {ruleId} eq 'BUNKAI-AUDIT-ERROR' } @results), 1, 'Finds 1 audit error result' );
     is( (scalar grep { $_ -> {ruleId} eq 'CVE-2025-10001' } @results), 1, 'Finds 1 CVE vulnerability result' );
     is( (scalar grep { $_ -> {ruleId} eq 'CPANSA-Bunkai-123' } @results), 1, 'Finds 1 CPANSA vulnerability result' );
 
@@ -159,12 +160,12 @@ subtest 'SARIF result generation for various dependency states' => sub {
     is( $vulnerability_result -> {level}, 'error', 'Vulnerability level is "error"' );
 
     my ($outdated_result) = grep { $_ -> {ruleId} eq 'BUNKAI-OUTDATED' } @results;
-    is( $outdated_result -> {level}, 'low', 'Outdated level is "low"' );
+    is( $outdated_result -> {level}, 'warning', 'Outdated level is "warning"' );
 
     my ($unpinned_result) = grep { $_ -> {ruleId} eq 'BUNKAI-UNPINNED' } @results;
     is( $unpinned_result -> {level}, 'warning', 'Unpinned level is "warning"' );
 
-    is( scalar @rules, 4, 'Expected rule definitions are present' );
+    is( scalar @rules, 5, 'Expected rule definitions are present' );
     my ($unpinned_rule) = grep { $_ -> {id} eq 'BUNKAI-UNPINNED' } @rules;
     is( $unpinned_rule -> {properties}{tags}[0], 'dependency', 'Unpinned rule is tagged as dependency' );
     my ($vulnerability_rule) = grep { $_ -> {id} eq 'CVE-2025-10001' } @rules;

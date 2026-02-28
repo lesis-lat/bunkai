@@ -53,6 +53,7 @@ Bunkai is a command-line tool that accepts the path to your project directory an
 ```bash
 $ perl bunkai.pl --path /path/to/project
 $ perl bunkai.pl --path /path/to/project --sarif /path/to/output.sarif
+$ perl bunkai.pl --path /path/to/project --update-cpanfile
 ```
 ```bash
 $ perl bunkai.pl --help
@@ -64,6 +65,7 @@ SCA for Perl Projects
     -------          -----------
     -p, --path=PATH      Path to the project containing a cpanfile
     -s, --sarif[=FILE]   Output results to a SARIF file (default: bunkai_results.sarif)
+    -u, --update-cpanfile   Update cpanfile with latest or fixed dependency versions
     -h, --help           Display this help menu
 ```
 
@@ -101,6 +103,8 @@ jobs:
         uses: lesis-lat/bunkai@v0.0.4
         with:
           project-path: .
+          perlcritic-severity: 1
+          perlcritic-paths: lib bunkai.pl
           sarif-output: bunkai-results.sarif
 
       - name: Upload SARIF to GitHub
@@ -108,6 +112,8 @@ jobs:
         with:
           sarif_file: bunkai-results.sarif
 ```
+
+`perlcritic-severity` and `perlcritic-paths` are optional action inputs used to lint the project before running tests and dependency analysis.
 
 #### Container image from GitHub Container Registry
 

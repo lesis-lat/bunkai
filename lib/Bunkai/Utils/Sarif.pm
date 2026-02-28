@@ -67,10 +67,25 @@ sub format_outdated_as_sarif_result {
 
     return +{
         ruleId    => 'BUNKAI-OUTDATED',
-        level     => 'low',
+        level     => 'warning',
         message   => +{ text => $message },
         locations => $location,
         properties => +{ tags => ['dependency'] },
+    };
+}
+
+sub format_audit_error_as_sarif_result {
+    my ( $dependency, $error_description, $location ) = @_;
+
+    my $message =
+      sprintf q{Module '%s' could not be fully audited: %s}, $dependency -> {module}, $error_description;
+
+    return +{
+        ruleId    => 'BUNKAI-AUDIT-ERROR',
+        level     => 'warning',
+        message   => +{ text => $message },
+        locations => $location,
+        properties => +{ tags => [ 'dependency', 'analysis' ] },
     };
 }
 
@@ -90,6 +105,12 @@ sub map_dependency_to_sarif_results {
     if ( $dependency -> {has_vulnerabilities} ) {
         for my $vulnerability ( @{ $dependency -> {vulnerabilities} } ) {
             if ( $vulnerability -> {type} eq 'error' ) {
+                push @results,
+                  format_audit_error_as_sarif_result(
+                    $dependency,
+                    $vulnerability -> {description},
+                    $location
+                  );
                 next;
             }
             push @results,
@@ -146,20 +167,29 @@ sub collect_sarif_rules {
 
         if ( $dependency -> {has_vulnerabilities} ) {
             for my $vulnerability ( @{ $dependency -> {vulnerabilities} } ) {
-                if ( $vulnerability -> {type} ne 'error' ) {
-                    my $rule_id = $vulnerability -> {cve_id};
-                    if ( !defined $rule_id || !length $rule_id ) {
-                        $rule_id = 'BUNKAI-VULN-UNKNOWN';
-                    }
-
-                    $rule_map{$rule_id} = create_sarif_rule_descriptor(
-                        $rule_id,
-                        'Dependency vulnerability identified.',
-                        [ 'security', 'dependency' ],
+                if ( $vulnerability -> {type} eq 'error' ) {
+                    $rule_map{'BUNKAI-AUDIT-ERROR'} = create_sarif_rule_descriptor(
+                        'BUNKAI-AUDIT-ERROR',
+                        'Dependency could not be fully audited.',
+                        [ 'dependency', 'analysis' ],
                         $help_uri,
-                        '8.0'
+                        undef
                     );
+                    next;
                 }
+
+                my $rule_id = $vulnerability -> {cve_id};
+                if ( !defined $rule_id || !length $rule_id ) {
+                    $rule_id = 'BUNKAI-VULN-UNKNOWN';
+                }
+
+                $rule_map{$rule_id} = create_sarif_rule_descriptor(
+                    $rule_id,
+                    'Dependency vulnerability identified.',
+                    [ 'security', 'dependency' ],
+                    $help_uri,
+                    '8.0'
+                );
             }
         }
     }

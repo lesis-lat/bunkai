@@ -32,8 +32,8 @@ sub render_analysis {
         }
 
         if ( @{$report_lines} ) {
-            print {*STDERR} join( "\n", @{$report_lines} ), "\n"
-              or croak "Cannot print report to STDERR: $OS_ERROR";
+            print {*STDOUT} join( "\n", @{$report_lines} ), "\n"
+              or croak "Cannot print report to STDOUT: $OS_ERROR";
         }
     }
 
