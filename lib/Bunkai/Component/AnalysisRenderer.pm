@@ -19,10 +19,10 @@ sub render_analysis {
 
     for my $dependency ( @{$dependencies} ) {
         my $version_display = 'not specified';
-        if ( $dependency -> {has_version} ) {
-            $version_display = $dependency -> {version};
+        if ( $dependency->{has_version} ) {
+            $version_display = $dependency->{version};
         }
-        printf {*STDOUT} "%-40s %s\n", $dependency -> {module}, $version_display
+        printf {*STDOUT} "%-40s %s\n", $dependency->{module}, $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 
         my ( $report_lines, $has_issues ) = generate_report_for_dependency($dependency);

@@ -14,13 +14,13 @@ our $VERSION   = '0.0.4';
 sub fetch_latest_version {
     my ($module_name) = @_;
 
-    my $metacpan_client = MetaCPAN::Client -> new();
+    my $metacpan_client = MetaCPAN::Client->new();
     my $version;
 
     try {
-        my $module = $metacpan_client -> module($module_name);
+        my $module = $metacpan_client->module($module_name);
         if ($module) {
-            $version = $module -> version;
+            $version = $module->version;
         }
     }
     catch {

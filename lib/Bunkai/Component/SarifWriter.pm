@@ -18,7 +18,7 @@ sub write_sarif_report {
     my ( $dependencies, $cpanfile_path, $output_file ) = @_;
 
     my $sarif_data = generate_sarif( $dependencies, $cpanfile_path );
-    my $json       = JSON::PP -> new -> pretty -> encode($sarif_data);
+    my $json       = JSON::PP->new->pretty->encode($sarif_data);
 
     open my $fh, '>', $output_file
       or croak "Cannot open SARIF output file '$output_file': $OS_ERROR";

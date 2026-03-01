@@ -28,7 +28,7 @@ sub parse_project_dependencies {
     my ($project_path) = @_;
 
     my $parser_result = parse_cpanfile($project_path);
-    if ( !$parser_result -> {success} ) {
+    if ( !$parser_result->{success} ) {
         return +{
             success   => 0,
             exit_code => 1,
@@ -36,13 +36,13 @@ sub parse_project_dependencies {
         };
     }
 
-    my $analyzed_dependencies = analyze_dependencies( $parser_result -> {data} );
+    my $analyzed_dependencies = analyze_dependencies( $parser_result->{data} );
     my $audited_dependencies  = audit_dependencies($analyzed_dependencies);
 
     return +{
         success               => 1,
         audited_dependencies  => $audited_dependencies,
-        cpanfile_path         => $parser_result -> {cpanfile_path},
+        cpanfile_path         => $parser_result->{cpanfile_path},
         planned_issue_updates => plan_issue_updates($audited_dependencies),
     };
 }
@@ -64,7 +64,7 @@ sub write_updates_plan {
         project_path => $project_path,
         issues       => $planned_issue_updates,
     };
-    my $plan_json = JSON::PP -> new -> pretty -> encode($plan_document);
+    my $plan_json = JSON::PP->new->pretty->encode($plan_document);
 
     open my $updates_fh, '>', $output_filename
       or croak "Cannot open updates plan file '$output_filename': $OS_ERROR";
@@ -97,10 +97,10 @@ sub apply_single_update {
 
     my $updated_count = apply_cpanfile_updates( $cpanfile_path, $updates );
     if ($updated_count) {
-        my $update = $updates -> [0];
+        my $update = $updates->[0];
         printf {*STDOUT} "UPDATE: %s %s (%s)\n",
-          $update -> {module},
-          $update -> {version},
+          $update->{module},
+          $update->{version},
           $apply_update_id
           or croak "Cannot print update info to STDOUT: $OS_ERROR";
         print {*STDOUT} "Updated cpanfile entries: $updated_count\n"
@@ -126,7 +126,7 @@ sub apply_bulk_updates {
 
     if ( @{$updates} ) {
         for my $update ( @{$updates} ) {
-            printf {*STDOUT} "UPDATE: %s %s\n", $update -> {module}, $update -> {version}
+            printf {*STDOUT} "UPDATE: %s %s\n", $update->{module}, $update->{version}
               or croak "Cannot print update info to STDOUT: $OS_ERROR";
         }
 
@@ -183,22 +183,22 @@ sub run_flow {
     my $apply_update_id   = $options{apply_update_id};
 
     my $dependency_result = parse_project_dependencies($project_path);
-    if ( !$dependency_result -> {success} ) {
+    if ( !$dependency_result->{success} ) {
         return $dependency_result;
     }
 
-    my $audited_dependencies = $dependency_result -> {audited_dependencies};
-    my $cpanfile_path = $dependency_result -> {cpanfile_path};
+    my $audited_dependencies = $dependency_result->{audited_dependencies};
+    my $cpanfile_path = $dependency_result->{cpanfile_path};
 
     write_updates_plan(
         $project_path,
         $plan_updates_file,
-        $dependency_result -> {planned_issue_updates}
+        $dependency_result->{planned_issue_updates}
     );
 
     my $single_update_result =
       apply_single_update( $audited_dependencies, $cpanfile_path, $apply_update_id );
-    if ( !$single_update_result -> {success} ) {
+    if ( !$single_update_result->{success} ) {
         return $single_update_result;
     }
 

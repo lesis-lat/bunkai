@@ -14,9 +14,9 @@ use Bunkai::Component::Analyzer qw(analyze_dependencies);
 
 our $VERSION = '0.0.4';
 
-my $analyzer_mock = Test::MockModule -> new('Bunkai::Component::Analyzer');
+my $analyzer_mock = Test::MockModule->new('Bunkai::Component::Analyzer');
 
-$analyzer_mock -> redefine(
+$analyzer_mock->redefine(
     'fetch_latest_version',
     sub {
         my ($module) = @_;
@@ -39,7 +39,7 @@ subtest 'dependency analysis' => sub {
     ];
 
     my $analyzed_dependencies = analyze_dependencies($dependencies);
-    my %results_by_module  = map { $_ -> {module} => $_ } @{$analyzed_dependencies};
+    my %results_by_module  = map { $_->{module} => $_ } @{$analyzed_dependencies};
 
     is( $results_by_module{UpToDate}{is_outdated}, 0, 'Up-to-date module is not marked as outdated' );
     is( $results_by_module{UpToDate}{latest_version}, '1.00', 'Up-to-date module has correct latest_version' );

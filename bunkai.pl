@@ -60,14 +60,14 @@ sub main {
         apply_update_id   => $apply_update_id,
     );
 
-    if ( !$result -> {success} ) {
-        my $message = $result -> {message};
+    if ( !$result->{success} ) {
+        my $message = $result->{message};
         print {*STDERR} "$message\n"
           or croak "Cannot print warning to STDERR: $OS_ERROR";
-        return $result -> {exit_code};
+        return $result->{exit_code};
     }
 
-    return $result -> {exit_code};
+    return $result->{exit_code};
 }
 
 exit main();

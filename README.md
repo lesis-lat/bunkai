@@ -96,6 +96,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
   pull-requests: write
   security-events: write
@@ -155,7 +156,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
 
       - name: Apply a single issue fix
         uses: lesis-lat/bunkai@v0.0.4
@@ -178,7 +179,7 @@ jobs:
         if: ${{ steps.changes.outputs.changed == 'true' }}
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
           commit-message: "chore(deps): apply Bunkai fix ${{ matrix.update.id }}"
           title: "chore(deps): Bunkai fix for ${{ matrix.update.module }} (${{ matrix.update.reason }})"
           branch: bunkai/${{ matrix.update.id }}

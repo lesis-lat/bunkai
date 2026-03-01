@@ -54,10 +54,10 @@ subtest 'plan_cpanfile_updates' => sub {
     my $updates = plan_cpanfile_updates($dependencies);
 
     is( scalar @{$updates}, 2, 'Plans updates for missing and vulnerable versions' );
-    is( $updates -> [0] -> {module}, 'Alpha', 'Plans update for missing version' );
-    is( $updates -> [0] -> {version}, '1.20', 'Uses latest version for missing version' );
-    is( $updates -> [1] -> {module}, 'Beta', 'Plans update for vulnerable version' );
-    is( $updates -> [1] -> {version}, '1.02', 'Uses fixed version for vulnerable module' );
+    is( $updates->[0]->{module}, 'Alpha', 'Plans update for missing version' );
+    is( $updates->[0]->{version}, '1.20', 'Uses latest version for missing version' );
+    is( $updates->[1]->{module}, 'Beta', 'Plans update for vulnerable version' );
+    is( $updates->[1]->{version}, '1.02', 'Uses fixed version for vulnerable module' );
 };
 
 subtest 'plan_issue_updates and single-issue selection' => sub {
@@ -100,13 +100,13 @@ subtest 'plan_issue_updates and single-issue selection' => sub {
         $EXPECTED_ISSUE_COUNT,
         'Plans issue-scoped updates for missing, outdated, and each vulnerability finding'
     );
-    ok( ( scalar grep { $_ -> {id} eq 'missing-version-alpha' } @{$issues} ) > 0,
+    ok( ( scalar grep { $_->{id} eq 'missing-version-alpha' } @{$issues} ) > 0,
         'Includes deterministic issue id for missing version' );
-    ok( ( scalar grep { $_ -> {id} eq 'outdated-beta' } @{$issues} ) > 0,
+    ok( ( scalar grep { $_->{id} eq 'outdated-beta' } @{$issues} ) > 0,
         'Includes deterministic issue id for outdated dependency' );
-    ok( ( scalar grep { $_ -> {id} eq 'vulnerability-fix-beta-cve-2026-12345' } @{$issues} ) > 0,
+    ok( ( scalar grep { $_->{id} eq 'vulnerability-fix-beta-cve-2026-12345' } @{$issues} ) > 0,
         'Includes deterministic issue id for vulnerability fix' );
-    ok( ( scalar grep { $_ -> {id} eq 'vulnerability-fix-beta-cve-2026-98765' } @{$issues} ) > 0,
+    ok( ( scalar grep { $_->{id} eq 'vulnerability-fix-beta-cve-2026-98765' } @{$issues} ) > 0,
         'Includes deterministic issue id for second vulnerability fix' );
 
     my $single = plan_single_update_by_issue_id( $dependencies, 'vulnerability-fix-beta-cve-2026-12345' );
@@ -125,8 +125,8 @@ subtest 'plan_issue_updates and single-issue selection' => sub {
 
 subtest 'apply_cpanfile_updates' => sub {
     my $directory = tempdir( CLEANUP => 1 );
-    my $cpanfile = path($directory) -> child('cpanfile');
-    $cpanfile -> spew(
+    my $cpanfile = path($directory)->child('cpanfile');
+    $cpanfile->spew(
         "requires 'Alpha';\n"
         . "requires 'Beta', '1.00';\n"
         . "requires 'Gamma', '2.00';\n"
@@ -137,10 +137,10 @@ subtest 'apply_cpanfile_updates' => sub {
         +{ module => 'Beta',  version => '1.02' },
     ];
 
-    my $updated = apply_cpanfile_updates( $cpanfile -> stringify, $updates );
+    my $updated = apply_cpanfile_updates( $cpanfile->stringify, $updates );
     is( $updated, 2, 'Updates two dependency lines' );
 
-    my $updated_contents = $cpanfile -> slurp;
+    my $updated_contents = $cpanfile->slurp;
     is(
         $updated_contents,
         "requires 'Alpha', '1.20';\n"

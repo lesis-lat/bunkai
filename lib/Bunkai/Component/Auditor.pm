@@ -119,9 +119,9 @@ sub parse_audit_output {
 sub find_vulnerabilities_for_module {
     my ($dependency) = @_;
 
-    my @command = ( 'cpan-audit', 'module', $dependency -> {module} );
-    if ( $dependency -> {has_version} ) {
-        push @command, $dependency -> {version};
+    my @command = ( 'cpan-audit', 'module', $dependency->{module} );
+    if ( $dependency->{has_version} ) {
+        push @command, $dependency->{version};
     }
 
     my $output = q{};

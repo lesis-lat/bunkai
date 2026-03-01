@@ -24,7 +24,7 @@ sub parse_version_value {
         return;
     }
 
-    my $parsed_version = eval { version -> new($value) };
+    my $parsed_version = eval { version->new($value) };
 
     if ( !defined $parsed_version ) {
         return;
@@ -51,11 +51,11 @@ sub find_fixed_version {
     my ($vulnerabilities) = @_;
 
     for my $vulnerability ( @{$vulnerabilities} ) {
-        if ( !$vulnerability -> {fixed_version} ) {
+        if ( !$vulnerability->{fixed_version} ) {
             next;
         }
 
-        my $version = extract_version_from_range( $vulnerability -> {fixed_version} );
+        my $version = extract_version_from_range( $vulnerability->{fixed_version} );
         if ( defined $version ) {
             return $version;
         }
@@ -120,11 +120,11 @@ sub plan_issue_updates {
     my @issues;
 
     for my $dependency ( @{$dependencies} ) {
-        my $module = $dependency -> {module};
-        my $current_version = $dependency -> {version};
-        my $latest_version = $dependency -> {latest_version};
+        my $module = $dependency->{module};
+        my $current_version = $dependency->{version};
+        my $latest_version = $dependency->{latest_version};
 
-        if ( !$dependency -> {has_version} && defined $latest_version ) {
+        if ( !$dependency->{has_version} && defined $latest_version ) {
             my $reason = 'missing_version';
             push @issues, +{
                 id              => build_issue_id( $reason, $module, undef ),
@@ -137,8 +137,8 @@ sub plan_issue_updates {
         }
 
         if (
-            $dependency -> {has_version}
-            && $dependency -> {is_outdated}
+            $dependency->{has_version}
+            && $dependency->{is_outdated}
             && defined $latest_version
             && is_newer_version( $current_version, $latest_version )
           )
@@ -154,16 +154,16 @@ sub plan_issue_updates {
             };
         }
 
-        if ( !$dependency -> {has_vulnerabilities} || !$dependency -> {has_version} ) {
+        if ( !$dependency->{has_vulnerabilities} || !$dependency->{has_version} ) {
             next;
         }
 
-        for my $vulnerability ( @{ $dependency -> {vulnerabilities} } ) {
-            if ( ( $vulnerability -> {type} // q{} ) eq 'error' ) {
+        for my $vulnerability ( @{ $dependency->{vulnerabilities} } ) {
+            if ( ( $vulnerability->{type} // q{} ) eq 'error' ) {
                 next;
             }
 
-            my $fixed_version = extract_version_from_range( $vulnerability -> {fixed_version} );
+            my $fixed_version = extract_version_from_range( $vulnerability->{fixed_version} );
             my $candidate_version = $fixed_version // $latest_version;
             if ( !defined $candidate_version ) {
                 next;
@@ -173,7 +173,7 @@ sub plan_issue_updates {
                 next;
             }
 
-            my $advisory_id = $vulnerability -> {cve_id};
+            my $advisory_id = $vulnerability->{cve_id};
             if ( !defined $advisory_id || !length $advisory_id ) {
                 $advisory_id = 'BUNKAI-VULN-UNKNOWN';
             }
@@ -200,17 +200,17 @@ sub plan_cpanfile_updates {
     my %best_update_by_module;
 
     for my $issue ( @{$issues} ) {
-        my $module = $issue -> {module};
-        my $target_version = $issue -> {target_version};
+        my $module = $issue->{module};
+        my $target_version = $issue->{target_version};
 
         my $existing_update = $best_update_by_module{$module};
         if ( !defined $existing_update
-            || is_newer_version( $existing_update -> {version}, $target_version ) )
+            || is_newer_version( $existing_update->{version}, $target_version ) )
         {
             $best_update_by_module{$module} = +{
                 module  => $module,
                 version => $target_version,
-                reason  => $issue -> {reason},
+                reason  => $issue->{reason},
             };
         }
     }
@@ -225,7 +225,7 @@ sub plan_single_update_by_issue_id {
     my ( $dependencies, $issue_id ) = @_;
 
     my $issues = plan_issue_updates($dependencies);
-    my ($matched_issue) = grep { $_ -> {id} eq $issue_id } @{$issues};
+    my ($matched_issue) = grep { $_->{id} eq $issue_id } @{$issues};
 
     if ( !defined $matched_issue ) {
         return;
@@ -234,9 +234,9 @@ sub plan_single_update_by_issue_id {
     my @updates;
 
     push @updates, +{
-        module  => $matched_issue -> {module},
-        version => $matched_issue -> {target_version},
-        reason  => $matched_issue -> {reason},
+        module  => $matched_issue->{module},
+        version => $matched_issue->{target_version},
+        reason  => $matched_issue->{reason},
     };
 
     return \@updates;
@@ -299,7 +299,7 @@ sub update_dependency_line {
 
     if ( my @captures = $line =~ $module_with_version_pattern ) {
         my ( $prefix, $quote, $module, $separator, @unused ) = @captures;
-        my $new_version = $versions_by_module -> {$module};
+        my $new_version = $versions_by_module->{$module};
 
         if ( defined $new_version ) {
             my $updated_line = sprintf q{%s%s%s%s%s %s%s%s;%s},
@@ -318,7 +318,7 @@ sub update_dependency_line {
 
     if ( my @captures = $line =~ $module_without_version_pattern ) {
         my ( $prefix, $quote, $module ) = @captures[ 0 .. 2 ];
-        my $new_version = $versions_by_module -> {$module};
+        my $new_version = $versions_by_module->{$module};
 
         if ( defined $new_version ) {
             my $updated_line = sprintf q{%s%s%s%s, %s%s%s;%s},
@@ -337,9 +337,9 @@ sub apply_cpanfile_updates {
         return 0;
     }
 
-    my %versions_by_module = map { $_ -> {module} => $_ -> {version} } @{$updates};
+    my %versions_by_module = map { $_->{module} => $_->{version} } @{$updates};
     my $cpanfile = path($cpanfile_path);
-    my @lines = $cpanfile -> lines;
+    my @lines = $cpanfile->lines;
     my @updated_lines;
     my $updated = 0;
 
@@ -350,7 +350,7 @@ sub apply_cpanfile_updates {
     }
 
     if ($updated) {
-        $cpanfile -> spew(@updated_lines);
+        $cpanfile->spew(@updated_lines);
     }
 
     return $updated;

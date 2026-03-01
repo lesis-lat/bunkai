@@ -14,24 +14,24 @@ our $VERSION = '0.0.4';
 
 sub parse_cpanfile {
     my ($project_path) = @_;
-    my $cpanfile_path = path($project_path) -> child('cpanfile');
+    my $cpanfile_path = path($project_path)->child('cpanfile');
 
     if ( !-f $cpanfile_path ) {
         return +{
             success       => 0,
             reason        => 'cpanfile_not_found',
             data          => [],
-            cpanfile_path => $cpanfile_path -> stringify
+            cpanfile_path => $cpanfile_path->stringify
         };
     }
 
-    my $cpanfile     = Module::CPANfile -> load($cpanfile_path);
-    my $requirements = $cpanfile -> prereqs -> merged_requirements;
-    my $module_hash  = $requirements -> as_string_hash;
+    my $cpanfile     = Module::CPANfile->load($cpanfile_path);
+    my $requirements = $cpanfile->prereqs->merged_requirements;
+    my $module_hash  = $requirements->as_string_hash;
 
     my @dependencies;
     foreach my $module ( sort keys %{$module_hash} ) {
-        my $version = $module_hash -> {$module};
+        my $version = $module_hash->{$module};
 
         $version =~ s{
             \A \s*
@@ -56,7 +56,7 @@ sub parse_cpanfile {
     return +{
         success       => 1,
         data          => \@dependencies,
-        cpanfile_path => $cpanfile_path -> stringify
+        cpanfile_path => $cpanfile_path->stringify
     };
 }
 
