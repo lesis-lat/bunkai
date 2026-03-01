@@ -150,6 +150,96 @@ subtest 'apply_cpanfile_updates' => sub {
     );
 };
 
+subtest 'single issue update only changes the targeted module' => sub {
+    my $dependencies = [
+        +{
+            module              => 'DateTime::TimeZone',
+            version             => '2.66',
+            has_version         => 1,
+            is_outdated         => 1,
+            latest_version      => '2.65',
+            has_vulnerabilities => 0,
+            vulnerabilities     => [],
+        },
+        +{
+            module              => 'Nmap::Scanner',
+            version             => undef,
+            has_version         => 0,
+            is_outdated         => 0,
+            latest_version      => '1.0',
+            has_vulnerabilities => 0,
+            vulnerabilities     => [],
+        },
+        +{
+            module              => 'Mojolicious',
+            version             => '9.42',
+            has_version         => 1,
+            is_outdated         => 0,
+            latest_version      => '9.42',
+            has_vulnerabilities => 0,
+            vulnerabilities     => [],
+        },
+    ];
+
+    my $single_issue = plan_single_update_by_issue_id(
+        $dependencies,
+        'missing-version-nmap-scanner'
+    );
+
+    is_deeply(
+        $single_issue,
+        [
+            +{
+                module  => 'Nmap::Scanner',
+                version => '1.0',
+                reason  => 'missing_version',
+            },
+        ],
+        'Plans a single update for the selected issue id'
+    );
+
+    my $directory = tempdir( CLEANUP => 1 );
+    my $cpanfile = path($directory)->child('cpanfile');
+    $cpanfile->spew(
+        "requires 'DateTime::TimeZone', '2.66';\n"
+        . "requires 'Nmap::Scanner';\n"
+        . "requires 'Mojolicious', '9.42';\n"
+    );
+
+    my $updated = apply_cpanfile_updates( $cpanfile->stringify, $single_issue );
+    is( $updated, 1, 'Updates exactly one dependency line for a single issue update' );
+
+    my $updated_contents = $cpanfile->slurp;
+    is(
+        $updated_contents,
+        "requires 'DateTime::TimeZone', '2.66';\n"
+        . "requires 'Nmap::Scanner', '1.0';\n"
+        . "requires 'Mojolicious', '9.42';\n",
+        'Leaves unrelated dependency versions unchanged'
+    );
+};
+
+subtest 'invalid issue id does not produce updates' => sub {
+    my $dependencies = [
+        +{
+            module              => 'Example::Module',
+            version             => undef,
+            has_version         => 0,
+            is_outdated         => 0,
+            latest_version      => '1.23',
+            has_vulnerabilities => 0,
+            vulnerabilities     => [],
+        },
+    ];
+
+    my $single_issue = plan_single_update_by_issue_id(
+        $dependencies,
+        'missing-version-not-real'
+    );
+
+    ok( !defined $single_issue, 'Returns undef for unknown issue id' );
+};
+
 done_testing;
 
 1;

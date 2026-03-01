@@ -121,14 +121,14 @@ run_orchestrate() {
     local cpanfile_rel="$cpanfile_path"
     cpanfile_rel="${cpanfile_rel#./}"
 
-    local original_cpanfile
-    original_cpanfile="$(cat "$cpanfile_path")"
-
     if [ -n "${GITHUB_WORKSPACE:-}" ]; then
       git config --global --add safe.directory "$GITHUB_WORKSPACE"
     fi
     git fetch origin "$base_branch"
     git checkout -B "$base_branch" "origin/$base_branch"
+
+    local original_cpanfile
+    original_cpanfile="$(cat "$cpanfile_path")"
 
     while IFS=$'\t' read -r issue_id module current_version target_version reason advisory_id; do
       if [ -z "${issue_id// }" ]; then
@@ -162,7 +162,8 @@ run_orchestrate() {
         git push --force origin "$branch_name"
       fi
 
-      local pr_title="chore(deps): Bunkai fix for ${module} (${reason})"
+      local reason_display="${reason:-unknown}"
+      local pr_title="chore(deps): Bunkai fix for ${module} (${reason_display})"
       local pr_body
       pr_body="$(print_orchestrate_pr_body "$issue_id" "$module" "$current_version" "$target_version" "$reason" "$advisory_id")"
 

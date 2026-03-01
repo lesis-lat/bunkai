@@ -6,7 +6,7 @@
       <img src="https://img.shields.io/badge/license-MIT-blue.svg">
     </a>
      <a href="https://github.com/lesis-lat/bunkai/releases">
-      <img src="https://img.shields.io/badge/version-0.0.4-blue.svg">
+      <img src="https://img.shields.io/badge/version-0.9.0-blue.svg">
     </a>
   </p>
 </p>
@@ -111,7 +111,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Bunkai
-        uses: lesis-lat/bunkai@main
+        uses: lesis-lat/bunkai@0.9.0
         with:
           project-path: .
           mode: orchestrate
@@ -130,9 +130,18 @@ jobs:
 ```
 
 This workflow uploads SARIF to the Security tab and runs automated dependency-fix PR management in one action step. `orchestrate` mode plans issue updates, deduplicates same-target updates, opens/updates one PR per issue, and closes resolved `bunkai/*` PRs not present in the latest plan.
-For production repositories, pin the action to a released tag that includes `orchestrate` instead of `@main`.
+For production repositories, pin the action to a released tag.
 
 `install-project-deps` is optional and defaults to `false`. Enable it only when your workflow also needs to install and run repository-specific Perl tooling inside the action container.
+
+#### Orchestrate mode notes
+
+The orchestrated PR flow includes guardrails to keep PRs actionable and stable:
+
+- Single-issue update application only mutates the targeted dependency line in `cpanfile`.
+- Duplicate updates that target the same `module + target_version` are deduplicated (prefers `vulnerability_fix`).
+- Concurrent branch update races are handled with a safe retry path when `--force-with-lease` reports stale ref info.
+- PR lifecycle operations use GitHub REST API calls (via `gh api`) to avoid GraphQL field deprecation issues.
 
 #### Container image from GitHub Container Registry
 
