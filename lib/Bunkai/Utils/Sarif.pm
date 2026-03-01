@@ -74,33 +74,6 @@ sub format_outdated_as_sarif_result {
     };
 }
 
-sub format_audit_error_as_sarif_result {
-    my ( $dependency, $error_description, $location ) = @_;
-
-    my $message =
-      sprintf q{Module '%s' could not be fully audited: %s}, $dependency->{module}, $error_description;
-
-    return +{
-        ruleId    => 'BUNKAI-AUDIT-ERROR',
-        level     => 'warning',
-        message   => +{ text => $message },
-        locations => $location,
-        properties => +{ tags => [ 'dependency', 'analysis' ] },
-    };
-}
-
-sub is_advisory_db_miss_error {
-    my ($vulnerability) = @_;
-
-    if ( !defined $vulnerability->{description} ) {
-        return 0;
-    }
-
-    return $vulnerability->{description} =~ m{
-        Error: \s Module .*? \s is \s not \s in \s database
-    }xms;
-}
-
 sub map_dependency_to_sarif_results {
     my ( $dependency, $cpanfile_path ) = @_;
 
@@ -117,15 +90,6 @@ sub map_dependency_to_sarif_results {
     if ( $dependency->{has_vulnerabilities} ) {
         for my $vulnerability ( @{ $dependency->{vulnerabilities} } ) {
             if ( $vulnerability->{type} eq 'error' ) {
-                if ( is_advisory_db_miss_error($vulnerability) ) {
-                    next;
-                }
-                push @results,
-                  format_audit_error_as_sarif_result(
-                    $dependency,
-                    $vulnerability->{description},
-                    $location
-                  );
                 next;
             }
             push @results,
@@ -183,16 +147,6 @@ sub collect_sarif_rules {
         if ( $dependency->{has_vulnerabilities} ) {
             for my $vulnerability ( @{ $dependency->{vulnerabilities} } ) {
                 if ( $vulnerability->{type} eq 'error' ) {
-                    if ( is_advisory_db_miss_error($vulnerability) ) {
-                        next;
-                    }
-                    $rule_map{'BUNKAI-AUDIT-ERROR'} = create_sarif_rule_descriptor(
-                        'BUNKAI-AUDIT-ERROR',
-                        'Dependency could not be fully audited.',
-                        [ 'dependency', 'analysis' ],
-                        $help_uri,
-                        undef
-                    );
                     next;
                 }
 

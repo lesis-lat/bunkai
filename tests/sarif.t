@@ -16,11 +16,11 @@ use Bunkai::Utils::Sarif qw(generate_sarif);
 our $VERSION = '0.0.4';
 
 use Const::Fast;
-const my $RESULTS_NUMBER => 7;
+const my $RESULTS_NUMBER => 6;
 const my $ASCII_DOLLAR_SIGN => 36;
 const my $SCHEMA_KEY    => chr($ASCII_DOLLAR_SIGN) . 'schema';
 const my $CPANFILE_PATH => '/path/to/project/cpanfile';
-const my $RULES_NUMBER  => 5;
+const my $RULES_NUMBER  => 4;
 
 subtest 'Module loading and basic structure' => sub {
     plan tests => 8;
@@ -81,7 +81,7 @@ subtest 'Argument validation' => sub {
 };
 
 subtest 'SARIF result generation for various dependency states' => sub {
-    plan tests => 13;
+    plan tests => 12;
 
     my $unpinned_dependency = {
         module              => 'Module::NoVersion',
@@ -171,7 +171,6 @@ subtest 'SARIF result generation for various dependency states' => sub {
 
     is( (scalar grep { $_->{ruleId} eq 'BUNKAI-UNPINNED' } @results), 2, 'Finds 2 unpinned dependency results' );
     is( (scalar grep { $_->{ruleId} eq 'BUNKAI-OUTDATED' } @results), 2, 'Finds 2 outdated dependency results' );
-    is( (scalar grep { $_->{ruleId} eq 'BUNKAI-AUDIT-ERROR' } @results), 1, 'Finds 1 audit error result' );
     is(
         ( scalar grep { $_->{message}{text} =~ m{Module::MissingAdvisory}xms } @results ),
         0,
