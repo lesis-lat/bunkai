@@ -109,7 +109,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Bunkai
-        uses: lesis-lat/bunkai@v0.0.4
+        uses: lesis-lat/bunkai@0.2.0
         with:
           project-path: .
           mode: scan
@@ -132,7 +132,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Plan issue updates
-        uses: lesis-lat/bunkai@v0.0.4
+        uses: lesis-lat/bunkai@0.2.0
         with:
           project-path: .
           mode: plan
@@ -160,7 +160,7 @@ jobs:
           token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
 
       - name: Apply a single issue fix
-        uses: lesis-lat/bunkai@v0.0.4
+        uses: lesis-lat/bunkai@0.2.0
         with:
           project-path: .
           mode: apply
