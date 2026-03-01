@@ -11,13 +11,14 @@ on:
 
 permissions:
   actions: read
-  contents: write
-  pull-requests: write
-  security-events: write
+  contents: read
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -38,6 +39,8 @@ jobs:
   plan:
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       updates: ${{ steps.collect.outputs.updates }}
     steps:
@@ -61,6 +64,9 @@ jobs:
     needs: plan
     if: ${{ github.event_name != 'pull_request' && needs.plan.outputs.updates != '[]' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
@@ -68,8 +74,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
 
       - name: Apply single update
         uses: lesis-lat/bunkai@0.2.0
@@ -91,7 +95,7 @@ jobs:
         if: ${{ steps.changes.outputs.changed == 'true' }}
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
+          token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
           commit-message: "chore(deps): apply Bunkai fix ${{ matrix.update.id }}"
           title: "chore(deps): Bunkai fix for ${{ matrix.update.module }} (${{ matrix.update.reason }})"
           body: |
