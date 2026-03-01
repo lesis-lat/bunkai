@@ -57,7 +57,12 @@ jobs:
       - name: Collect planned updates
         id: collect
         run: |
-          updates="$(jq -c '.issues // []' bunkai-updates.json)"
+          updates="$(jq -c '
+            .issues // []
+            | sort_by(.module, .target_version, (.reason != "vulnerability_fix"))
+            | group_by(.module + "|" + (.target_version // ""))
+            | map((map(select(.reason == "vulnerability_fix"))[0]) // .[0])
+          ' bunkai-updates.json)"
           echo "updates=$updates" >> "$GITHUB_OUTPUT"
 
   create_pr:
