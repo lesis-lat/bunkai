@@ -166,33 +166,32 @@ run_orchestrate() {
       local pr_body
       pr_body="$(print_orchestrate_pr_body "$issue_id" "$module" "$current_version" "$target_version" "$reason" "$advisory_id")"
 
+      local repo_owner="${GITHUB_REPOSITORY%%/*}"
       local existing_pr_number
-      existing_pr_number="$(gh pr list \
-        --repo "$GITHUB_REPOSITORY" \
-        --state open \
-        --head "$branch_name" \
-        --json number \
-        --jq '.[0].number // empty')"
+      existing_pr_number="$(gh api \
+        --method GET \
+        "repos/$GITHUB_REPOSITORY/pulls" \
+        -f state='open' \
+        -f head="${repo_owner}:${branch_name}" \
+        -q '.[0].number // empty')"
 
       local pr_number="$existing_pr_number"
       if [ -n "$existing_pr_number" ]; then
-        gh pr edit "$existing_pr_number" \
-          --repo "$GITHUB_REPOSITORY" \
-          --title "$pr_title" \
-          --body "$pr_body"
+        gh api \
+          --method PATCH \
+          "repos/$GITHUB_REPOSITORY/pulls/$existing_pr_number" \
+          -f title="$pr_title" \
+          -f body="$pr_body" \
+          >/dev/null
       else
-        gh pr create \
-          --repo "$GITHUB_REPOSITORY" \
-          --base "$base_branch" \
-          --head "$branch_name" \
-          --title "$pr_title" \
-          --body "$pr_body"
-        pr_number="$(gh pr list \
-          --repo "$GITHUB_REPOSITORY" \
-          --state open \
-          --head "$branch_name" \
-          --json number \
-          --jq '.[0].number // empty')"
+        pr_number="$(gh api \
+          --method POST \
+          "repos/$GITHUB_REPOSITORY/pulls" \
+          -f title="$pr_title" \
+          -f head="$branch_name" \
+          -f base="$base_branch" \
+          -f body="$pr_body" \
+          -q '.number')"
       fi
 
       if [ -n "${label_csv// }" ]; then
@@ -201,7 +200,11 @@ run_orchestrate() {
           label="${label#"${label%%[![:space:]]*}"}"
           label="${label%"${label##*[![:space:]]}"}"
           if [ -n "$label" ]; then
-            gh pr edit "$pr_number" --repo "$GITHUB_REPOSITORY" --add-label "$label" || true
+            gh api \
+              --method POST \
+              "repos/$GITHUB_REPOSITORY/issues/$pr_number/labels" \
+              -f labels[]="$label" \
+              >/dev/null || true
           fi
         done
       fi
@@ -231,17 +234,27 @@ run_orchestrate() {
         continue
       fi
       if ! grep -Fxq "$pr_branch" <<<"$active_branches"; then
-        gh pr comment "$pr_number" --repo "$GITHUB_REPOSITORY" \
-          --body "Closing automatically: this Bunkai issue is not present in the latest scan plan."
-        gh pr close "$pr_number" --repo "$GITHUB_REPOSITORY" --delete-branch || true
+        gh api \
+          --method POST \
+          "repos/$GITHUB_REPOSITORY/issues/$pr_number/comments" \
+          -f body='Closing automatically: this Bunkai issue is not present in the latest scan plan.' \
+          >/dev/null
+        gh api \
+          --method PATCH \
+          "repos/$GITHUB_REPOSITORY/pulls/$pr_number" \
+          -f state='closed' \
+          >/dev/null
+        gh api \
+          --method DELETE \
+          "repos/$GITHUB_REPOSITORY/git/refs/heads/$pr_branch" \
+          >/dev/null || true
       fi
     done < <(
-      gh pr list \
-        --repo "$GITHUB_REPOSITORY" \
-        --state open \
-        --limit 200 \
-        --json number,headRefName \
-        --jq '.[] | select(.headRefName | startswith("'"$pr_branch_prefix"'/")) | [.number, .headRefName] | @tsv'
+      gh api \
+        --method GET \
+        --paginate \
+        "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+        --jq '.[] | select(.head.ref | startswith("'"$pr_branch_prefix"'/")) | [.number, .head.ref] | @tsv'
     )
   fi
 
