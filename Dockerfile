@@ -13,6 +13,10 @@ FROM perl:5.42-slim
 
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git curl jq gh ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /usr/local/lib/perl5 /usr/local/lib/perl5
 # Copy all installed Perl executables (cpan-audit, cpanm, cover, etc.).
 COPY --from=builder /usr/local/bin/ /usr/local/bin/

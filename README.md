@@ -97,102 +97,40 @@ on:
 
 permissions:
   actions: read
-  contents: write
-  pull-requests: write
-  security-events: write
+  contents: read
 
 jobs:
-  scan:
+  bunkai:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Run Bunkai
-        uses: lesis-lat/bunkai@0.2.0
+        uses: lesis-lat/bunkai@main
         with:
           project-path: .
-          mode: scan
+          mode: orchestrate
           install-project-deps: false
           sarif-output: bunkai-results.sarif
+          github-token: ${{ secrets.BUNKAI_GITHUB_TOKEN || github.token }}
+          create-prs: ${{ github.event_name != 'pull_request' }}
+          close-resolved-prs: ${{ github.event_name != 'pull_request' }}
+          dedupe-updates: true
 
       - name: Upload SARIF to GitHub
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bunkai-results.sarif
           category: bunkai-sca
-
-  plan:
-    if: ${{ github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
-    outputs:
-      updates: ${{ steps.collect.outputs.updates }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Plan issue updates
-        uses: lesis-lat/bunkai@0.2.0
-        with:
-          project-path: .
-          mode: plan
-          install-project-deps: false
-          plan-output-file: bunkai-updates.json
-
-      - name: Convert update plan to matrix JSON
-        id: collect
-        run: |
-          updates="$(jq -c '.issues // []' bunkai-updates.json)"
-          echo "updates=$updates" >> "$GITHUB_OUTPUT"
-
-  create_pr:
-    needs: plan
-    if: ${{ github.event_name != 'pull_request' && needs.plan.outputs.updates != '[]' }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        update: ${{ fromJson(needs.plan.outputs.updates) }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
-
-      - name: Apply a single issue fix
-        uses: lesis-lat/bunkai@0.2.0
-        with:
-          project-path: .
-          mode: apply
-          install-project-deps: false
-          apply-update-id: ${{ matrix.update.id }}
-
-      - name: Skip PR when cpanfile did not change
-        id: changes
-        run: |
-          if git diff --quiet -- cpanfile; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Open pull request
-        if: ${{ steps.changes.outputs.changed == 'true' }}
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.BUNKAI_GITHUB_TOKEN }}
-          commit-message: "chore(deps): apply Bunkai fix ${{ matrix.update.id }}"
-          title: "chore(deps): Bunkai fix for ${{ matrix.update.module }} (${{ matrix.update.reason }})"
-          branch: bunkai/${{ matrix.update.id }}
-          delete-branch: true
-          labels: |
-            dependencies
-            security
-          add-paths: |
-            cpanfile
 ```
 
-This workflow uploads SARIF to the Security tab on every PR/push run, and only creates fix PRs on non-`pull_request` events (`push`, `schedule`, `workflow_dispatch`).
+This workflow uploads SARIF to the Security tab and runs automated dependency-fix PR management in one action step. `orchestrate` mode plans issue updates, deduplicates same-target updates, opens/updates one PR per issue, and closes resolved `bunkai/*` PRs not present in the latest plan.
+For production repositories, pin the action to a released tag that includes `orchestrate` instead of `@main`.
 
 `install-project-deps` is optional and defaults to `false`. Enable it only when your workflow also needs to install and run repository-specific Perl tooling inside the action container.
 

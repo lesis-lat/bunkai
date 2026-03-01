@@ -11,7 +11,7 @@ inputs:
     required: false
     default: '.'
   mode:
-    description: 'Bunkai execution mode: scan, plan, apply, or update.'
+    description: 'Bunkai execution mode: scan, plan, apply, update, or orchestrate.'
     required: false
     default: 'scan'
   install-project-deps:
@@ -42,6 +42,30 @@ inputs:
     description: 'The command to run tests with coverage.'
     required: false
     default: ''
+  github-token:
+    description: 'GitHub token used by orchestrate mode for PR management.'
+    required: false
+    default: ''
+  create-prs:
+    description: 'Create/update one PR per issue in orchestrate mode.'
+    required: false
+    default: 'true'
+  close-resolved-prs:
+    description: 'Close stale bunkai/* PRs not present in the latest plan in orchestrate mode.'
+    required: false
+    default: 'true'
+  dedupe-updates:
+    description: 'Deduplicate planned updates by module+target version in orchestrate mode.'
+    required: false
+    default: 'true'
+  pr-branch-prefix:
+    description: 'Branch prefix for PR branches in orchestrate mode.'
+    required: false
+    default: 'bunkai'
+  pr-labels:
+    description: 'Comma-separated labels to apply in orchestrate mode.'
+    required: false
+    default: 'dependencies,security'
 
 outputs:
   plan-output-file:
