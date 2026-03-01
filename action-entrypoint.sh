@@ -155,7 +155,12 @@ run_orchestrate() {
 
       git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
         commit -m "chore(deps): apply Bunkai fix $issue_id"
-      git push --force-with-lease origin "$branch_name"
+
+      # Another workflow run may update the same branch between fetch and push.
+      # Retry with --force so the orchestrator can converge branch state.
+      if ! git push --force-with-lease origin "$branch_name"; then
+        git push --force origin "$branch_name"
+      fi
 
       local pr_title="chore(deps): Bunkai fix for ${module} (${reason})"
       local pr_body
