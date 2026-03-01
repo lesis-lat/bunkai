@@ -9,6 +9,18 @@ use Exporter qw(import);
 our @EXPORT_OK = qw(generate_report_for_dependency);
 our $VERSION   = '0.0.4';
 
+sub is_advisory_db_miss_error {
+    my ($description) = @_;
+
+    if ( !defined $description ) {
+        return 0;
+    }
+
+    return $description =~ m{
+        Error: \s Module .*? \s is \s not \s in \s database
+    }xms;
+}
+
 sub generate_report_for_dependency {
     my ($dependency) = @_;
 
@@ -36,13 +48,17 @@ sub generate_report_for_dependency {
     }
 
     if ( $dependency->{has_vulnerabilities} ) {
-        $should_fail = 1;
         for my $vulnerability ( @{ $dependency->{vulnerabilities} } ) {
             if ( $vulnerability->{type} eq 'error' ) {
+                if ( is_advisory_db_miss_error( $vulnerability->{description} ) ) {
+                    next;
+                }
                 push @error_lines, $vulnerability->{description};
+                $should_fail = 1;
                 next;
             }
 
+            $should_fail = 1;
             if ( !$suggest_line && defined $vulnerability->{fixed_version} ) {
                 $suggest_line =
                   sprintf 'SUGGEST: Upgrade to version %s or later.', $vulnerability->{fixed_version};
