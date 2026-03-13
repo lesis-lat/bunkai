@@ -16,6 +16,7 @@ our $VERSION = '0.0.4';
 
 sub MockedClient::module { croak 'MockedClient::module not localized' }
 sub MockedModule::version { croak 'MockedModule::version not localized' }
+sub MockedModule::distribution { croak 'MockedModule::distribution not localized' }
 
 subtest 'fetch latest version' => sub {
     my $metacpan_client_mock = Test::MockModule->new('MetaCPAN::Client');
@@ -25,10 +26,23 @@ subtest 'fetch latest version' => sub {
         my $mock_client_object = bless {}, 'MockedClient';
 
         local *MockedModule::version = sub {'1.23'};
+        local *MockedModule::distribution = sub {'Some-Distribution'};
         local *MockedClient::module  = sub { return $mock_module_object };
 
         $metacpan_client_mock->redefine( new => sub {$mock_client_object} );
         is( fetch_latest_version('Some::Module'), '1.23', 'Returns correct version' );
+    };
+
+    subtest 'when module comes from perl distribution' => sub {
+        my $mock_module_object = bless {}, 'MockedModule';
+        my $mock_client_object = bless {}, 'MockedClient';
+
+        local *MockedModule::version = sub {'5.42.1'};
+        local *MockedModule::distribution = sub {'perl'};
+        local *MockedClient::module  = sub { return $mock_module_object };
+
+        $metacpan_client_mock->redefine( new => sub {$mock_client_object} );
+        is( fetch_latest_version('File::Find'), undef, 'Skips perl core distribution modules' );
     };
 
     subtest 'when module is not found' => sub {

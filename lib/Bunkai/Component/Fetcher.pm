@@ -20,6 +20,11 @@ sub fetch_latest_version {
     try {
         my $module = $metacpan_client->module($module_name);
         if ($module) {
+            # Skip core modules shipped in the perl distribution to avoid
+            # proposing perl release versions as module versions.
+            if ( ( $module->distribution // q{} ) eq 'perl' ) {
+                return;
+            }
             $version = $module->version;
         }
     }
