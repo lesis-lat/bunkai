@@ -1,7 +1,7 @@
 requires 'Getopt::Long',           '2.58';
 requires 'Path::Tiny',             '0.150';
 requires 'Const::Fast',            '0.014';
-requires 'CPAN::Audit',            '20250829.001';
+requires 'CPAN::Audit', '20260308.002';
 requires 'JSON::PP',               '4.16';
 requires 'Module::CPANfile',       '1.1004';
 requires 'MetaCPAN::Client', '2.040000';
