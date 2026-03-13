@@ -8,7 +8,7 @@ requires 'MetaCPAN::Client', '2.039000';
 
 on 'test' => sub {
     requires 'Perl::Critic',        '1.156';
-    requires 'Devel::Cover',        '1.51';
+    requires 'Devel::Cover', '1.52';
     requires 'File::Temp',          '0.2312';
     requires 'Test::More',          '1.302219';
     requires 'Test::MockModule',    '0.180.0';
