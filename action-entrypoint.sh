@@ -130,7 +130,21 @@ run_orchestrate() {
     local original_cpanfile
     original_cpanfile="$(cat "$cpanfile_path")"
 
-    while IFS=$'\t' read -r issue_id module current_version target_version reason advisory_id; do
+    while IFS= read -r issue_json; do
+      local issue_id
+      local module
+      local current_version
+      local target_version
+      local reason
+      local advisory_id
+
+      issue_id="$(jq -r '.id // ""' <<<"$issue_json")"
+      module="$(jq -r '.module // ""' <<<"$issue_json")"
+      current_version="$(jq -r '.current_version // ""' <<<"$issue_json")"
+      target_version="$(jq -r '.target_version // ""' <<<"$issue_json")"
+      reason="$(jq -r '.reason // ""' <<<"$issue_json")"
+      advisory_id="$(jq -r '.advisory_id // ""' <<<"$issue_json")"
+
       if [ -z "${issue_id// }" ]; then
         continue
       fi
@@ -211,16 +225,7 @@ run_orchestrate() {
       fi
 
       git checkout "$base_branch"
-    done < <(
-      jq -r '.[] | [
-        (.id // ""),
-        (.module // ""),
-        (.current_version // ""),
-        (.target_version // ""),
-        (.reason // ""),
-        (.advisory_id // "")
-      ] | @tsv' <<<"$updates_json"
-    )
+    done < <(jq -c '.[]' <<<"$updates_json")
   fi
 
   if [ "${close_resolved_prs,,}" = "true" ]; then

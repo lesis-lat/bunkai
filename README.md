@@ -60,7 +60,7 @@ $ perl bunkai.pl --path /path/to/project --update-cpanfile
 ```bash
 $ perl bunkai.pl --help
 
-Bunkai v0.0.4
+Bunkai v0.9.0
 SCA for Perl Projects
 =====================
     Command          Description
@@ -142,6 +142,8 @@ The orchestrated PR flow includes guardrails to keep PRs actionable and stable:
 - Duplicate updates that target the same `module + target_version` are deduplicated (prefers `vulnerability_fix`).
 - Concurrent branch update races are handled with a safe retry path when `--force-with-lease` reports stale ref info.
 - PR lifecycle operations use GitHub REST API calls (via `gh api`) to avoid GraphQL field deprecation issues.
+- Dependencies reported by MetaCPAN as belonging to distribution `perl` are not auto-updated in `cpanfile`.
+  Use `requires 'perl', 'x.yyyzzz'` for interpreter pinning, and only pin core-module versions when you need a specific module API level.
 
 #### Container image from GitHub Container Registry
 
