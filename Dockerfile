@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/
 RUN cpanm App::cpanminus
 
 COPY cpanfile /app/
-RUN cpanm --notest --installdeps .
+RUN cpanm --notest --installdeps . --mirror https://cpan.metacpan.org --mirror-only
 
 FROM perl:5.42-slim
 
