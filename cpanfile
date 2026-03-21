@@ -5,6 +5,7 @@ requires 'CPAN::Audit', '20260308.002';
 requires 'JSON::PP',               '4.16';
 requires 'Module::CPANfile',       '1.1004';
 requires 'MetaCPAN::Client', '2.040000';
+requires 'Try::Tiny',              '0.32';
 
 feature 'test' => sub {
     requires 'Perl::Critic',        '1.156';
