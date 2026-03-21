@@ -6,9 +6,9 @@ requires 'JSON::PP',               '4.16';
 requires 'Module::CPANfile',       '1.1004';
 requires 'MetaCPAN::Client', '2.040000';
 
-on 'test' => sub {
+feature 'test' => sub {
     requires 'Perl::Critic',        '1.156';
-    requires 'Devel::Cover', '1.52';
+    requires 'Devel::Cover',        '1.52';
     requires 'File::Temp',          '0.2312';
     requires 'Test::More',          '1.302219';
     requires 'Test::MockModule',    '0.180.0';

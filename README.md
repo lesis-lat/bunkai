@@ -6,7 +6,7 @@
       <img src="https://img.shields.io/badge/license-MIT-blue.svg">
     </a>
      <a href="https://github.com/lesis-lat/bunkai/releases">
-      <img src="https://img.shields.io/badge/version-0.9.0-blue.svg">
+      <img src="https://img.shields.io/badge/version-0.9.2-blue.svg">
     </a>
   </p>
 </p>
@@ -41,7 +41,7 @@ Bunkai aims to improve the security and reproducibility of Perl builds by addres
 git clone https://github.com/lesis-lat/bunkai.git && cd bunkai
 
 # Install dependencies
-cpanm --installdeps .
+cpanm --installdeps . --mirror https://cpan.metacpan.org --mirror-only -n
 ```
 
 ---
@@ -60,7 +60,7 @@ $ perl bunkai.pl --path /path/to/project --update-cpanfile
 ```bash
 $ perl bunkai.pl --help
 
-Bunkai v0.9.0
+Bunkai v0.9.2
 SCA for Perl Projects
 =====================
     Command          Description
@@ -77,7 +77,7 @@ SCA for Perl Projects
 
 ### GitHub Actions
 
-You can run Bunkai from the GitHub Marketplace action or the published container image and upload SARIF results to GitHub Advanced Security.
+You can run Bunkai from the GitHub Marketplace action and upload SARIF results to GitHub Advanced Security.
 
 #### Marketplace action with SARIF upload + one PR per issue
 
@@ -111,7 +111,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Bunkai
-        uses: lesis-lat/bunkai@0.9.0
+        uses: lesis-lat/bunkai@0.9.2
         with:
           project-path: .
           mode: orchestrate
@@ -144,42 +144,6 @@ The orchestrated PR flow includes guardrails to keep PRs actionable and stable:
 - PR lifecycle operations use GitHub REST API calls (via `gh api`) to avoid GraphQL field deprecation issues.
 - Dependencies reported by MetaCPAN as belonging to distribution `perl` are not auto-updated in `cpanfile`.
   Use `requires 'perl', 'x.yyyzzz'` for interpreter pinning, and only pin core-module versions when you need a specific module API level.
-
-#### Container image from GitHub Container Registry
-
-Create `.github/workflows/bunkai-container.yml` in your repository:
-
-```yaml
-name: Bunkai SCA (Container)
-
-on:
-  pull_request:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: read
-  security-events: write
-  packages: read
-
-jobs:
-  bunkai:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/lesis-lat/bunkai/bunkai:latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Bunkai
-        run: perl /opt/bunkai/bunkai.pl --path . --sarif bunkai-results.sarif
-
-      - name: Upload SARIF to GitHub
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: bunkai-results.sarif
-```
 
 ### Example
 
