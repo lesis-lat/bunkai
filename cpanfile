@@ -4,7 +4,7 @@ requires 'Const::Fast',            '0.014';
 requires 'CPAN::Audit', '20260308.002';
 requires 'JSON::PP', '4.18';
 requires 'Module::CPANfile',       '1.1004';
-requires 'MetaCPAN::Client', '2.040000';
+requires 'MetaCPAN::Client', '2.043000';
 requires 'Try::Tiny',              '0.32';
 
 feature 'test' => sub {
