@@ -60,7 +60,7 @@ sub read_json {
     return decode_json($content);
 }
 
-plan tests => 7;
+plan tests => 9;
 
 subtest 'the banner documents the interface' => sub {
     plan tests => 4;
@@ -108,6 +108,34 @@ subtest 'a cpanfile with code is refused without running it' => sub {
         'the offending line is named'
     );
     ok(!-e $marker, 'the cpanfile is never executed');
+};
+
+subtest 'the short path option is accepted' => sub {
+    plan tests => 3;
+
+    my $project = project_with("requires 'Try::Tiny';\n");
+    my $result  = run_bunkai('-p', $project);
+
+    is($result     -> {status}, 1, 'the scan runs and the gate closes');
+    like($result   -> {output}, qr/Try::Tiny/xms, 'the project is scanned');
+    unlike($result -> {output},
+        qr/--path\sis\srequired/xms,
+        'the option is not mistaken for a missing path');
+};
+
+subtest 'the short path option still validates the directory' => sub {
+    plan tests => 2;
+
+    my $missing =
+      File::Spec -> catdir(Bunkai::Test::Directory -> new(), 'missing');
+    my $result = run_bunkai('-p', $missing);
+
+    is($result -> {status}, 1, 'the run fails');
+    like(
+        $result -> {output},
+        qr/--path\sis\srequired\sand\smust\sbe\sa\svalid\sdirectory/xms,
+        'the invalid directory is explained'
+    );
 };
 
 subtest 'a dependency without a version is reported' => sub {
