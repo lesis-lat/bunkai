@@ -10,12 +10,35 @@ on:
       - main
       - develop
 
+permissions:
+  contents: read
+
 jobs:
   critic:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
-    - name: Run Perl::Critic
-      uses: natanlao/perl-critic-action@v1.1
+    - name: Install Perl::Critic and Perl::Tidy
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cpanminus
+        sudo cpanm --notest Perl::Critic@1.156 Perl::Tidy@20250912
+    - name: Run Perl::Critic at severity 1
+      run: perlcritic --profile .perlcriticrc --severity 1 --verbose 8 .
+
+  style:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Check out the style guide
+      uses: actions/checkout@v7
       with:
-        files: critic
+        repository: lesis-lat/perl-style-guide
+        path: .perl-style-guide
+    - name: Install checker dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cpanminus
+        sudo cpanm --notest PPI Readonly
+    - name: Run the LESIS style check
+      run: perl .perl-style-guide/bin/lesis-style-check.pl .

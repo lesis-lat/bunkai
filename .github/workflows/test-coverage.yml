@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: ./tests
+        working-directory: ./
 
     outputs:
       coverage_percent: ${{ steps.coverage_percent.outputs.coverage }}
@@ -21,19 +21,24 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install modules
-        run: cpanm --installdeps . --with-feature=test --mirror https://cpan.metacpan.org --mirror-only -n
-        working-directory: ./
+        run: cpanm --installdeps . --with-develop --mirror https://cpan.metacpan.org --mirror-only -n
 
       - name: Run tests with coverage
-        run: PERL5OPT=-MDevel::Cover prove *.t
+        run: |
+          PERL5OPT='-MDevel::Cover=-silent,1,-select,^lib/,-ignore,.' \
+            prove -Ilib -Itests/lib -r tests/unit tests/integration tests/e2e
 
       - name: Generate coverage report
         run: cover
 
+      - name: Enforce the coverage floor
+        run: |
+          cover -silent -report text -coverage statement,branch,subroutine \
+            | awk '/^Total/ { if ($2 + 0 < 90) { print "statement coverage below 90%: " $2; exit 1 } }'
+
       - id: coverage_percent
         name: Extract total coverage percentage
         run: echo "coverage=$(cover | perl -ne 'print +(split)[-1] if /^Total\b/')" >> $GITHUB_OUTPUT
-        working-directory: ./tests
 
       - id: set_badge_url
         name: Determine badge color and URL

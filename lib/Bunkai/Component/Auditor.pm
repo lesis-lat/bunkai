@@ -4,36 +4,56 @@ use 5.034;
 use strict;
 use warnings;
 
-use English qw(-no_match_vars);
-use Exporter qw(import);
+use English    qw(-no_match_vars);
+use Exporter   qw(import);
 use IPC::Open3 qw(open3);
-use Symbol qw(gensym);
-use Carp qw(carp);
+use Symbol     qw(gensym);
+use Carp       qw(carp);
 use Try::Tiny;
 use Const::Fast;
+use Type::Params qw(signature);
+
+use Bunkai::Types qw(DependencyList);
 
 our @EXPORT_OK = qw(audit_dependencies);
 our $VERSION   = '0.0.4';
 const my $WAITPID_ERROR => -1;
 
+sub resolves_to_perl_interpreter {
+    my ($output) = @_;
+
+    if ($output =~
+        m{\A (?: \e \[ [[:digit:];]* m )* \s* perl \s [(] requires \s}xms)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 sub parse_audit_output {
     my ($output) = @_;
 
-    if ( !defined $output ) {
+    if (!defined $output) {
         return [];
     }
 
     $output =~ s/\s+\z//msx;
 
-    if ( !$output ) {
+    if (!$output) {
         return [];
     }
 
-    if ( $output =~ m{Error: \s Module .*? \s is \s not \s in \s database}xms ) {
-        return [ +{ type => 'error', description => $output } ];
+    if ($output =~ m{Error: \s Module .*? \s is \s not \s in \s database}xms)
+    {
+        return [+{type => 'error', description => $output}];
     }
 
-    if ( $output =~ m{No \s known \s vulnerabilities \s found}xms ) {
+    if ($output =~ m{No \s known \s vulnerabilities \s found}xms) {
+        return [];
+    }
+
+    if (resolves_to_perl_interpreter($output)) {
         return [];
     }
 
@@ -46,7 +66,7 @@ sub parse_audit_output {
 
     for my $chunk (@advisory_chunks) {
         my $fixed_version;
-        if ( $chunk =~ m{^Fixed \s range: \s* ([[:graph:]].*)}imxs ) {
+        if ($chunk =~ m{^Fixed \s range: \s* ([[:graph:]].*)}imxs) {
             $fixed_version = $1;
         }
 
@@ -55,30 +75,35 @@ sub parse_audit_output {
                 CVE-[[:digit:]]{4}-[[:digit:]]+
             )
         }gmsx;
-        if ( !@ids && $chunk =~ m{
+        if (
+              !@ids
+            && $chunk =~ m{
             (
                 CPANSA-[[:word:]-]+-[[:digit:]]+-[[:word:]]*
             )
-        }xms ) {
+        }xms
+          )
+        {
             @ids = ($1);
         }
 
-        if ( !@ids ) {
+        if (!@ids) {
             @ids = ('N/A');
         }
 
         for my $id (@ids) {
-            if ( $seen_ids{$id} ) {
+            if ($seen_ids{$id}) {
                 next;
             }
             $seen_ids{$id} = 1;
 
-            push @vulnerabilities, +{
+            push @vulnerabilities,
+              +{
                 type          => 'vulnerability',
                 cve_id        => $id,
                 description   => $chunk,
                 fixed_version => $fixed_version,
-            };
+              };
         }
     }
 
@@ -87,22 +112,29 @@ sub parse_audit_output {
     }
 
     my $fixed_version;
-    if ( $output =~ m{^Fixed \s range: \s* ([[:graph:]].*)}imxs ) {
+    if ($output =~ m{^Fixed \s range: \s* ([[:graph:]].*)}imxs) {
         $fixed_version = $1;
     }
     my $vulnerability_id = 'N/A';
-    if ( $output =~ m{
+    if (
+        $output =~ m{
         (
             CVE-[[:digit:]]{4}-[[:digit:]]+
         )
-    }xms ) {
+    }xms
+      )
+    {
         $vulnerability_id = $1;
     }
-    elsif ( $output =~ m{
+    if (
+           $vulnerability_id eq 'N/A'
+        && $output =~ m{
         (
             CPANSA-[[:word:]-]+-[[:digit:]]+-[[:word:]]*
         )
-    }xms ) {
+    }xms
+      )
+    {
         $vulnerability_id = $1;
     }
 
@@ -119,9 +151,9 @@ sub parse_audit_output {
 sub find_vulnerabilities_for_module {
     my ($dependency) = @_;
 
-    my @command = ( 'cpan-audit', 'module', $dependency->{module} );
-    if ( $dependency->{has_version} ) {
-        push @command, $dependency->{version};
+    my @command = ('cpan-audit', 'module', $dependency -> {module});
+    if ($dependency -> {has_version}) {
+        push @command, $dependency -> {version};
     }
 
     my $output = q{};
@@ -129,7 +161,8 @@ sub find_vulnerabilities_for_module {
 
     try {
         my $error_handle = gensym;
-        my $process_id = open3(my $in_handle, my $out_handle, $error_handle, @command);
+        my $process_id =
+          open3(my $in_handle, my $out_handle, $error_handle, @command);
 
         close $in_handle or carp "Could not close input handle: $OS_ERROR";
 
@@ -141,7 +174,7 @@ sub find_vulnerabilities_for_module {
         }
 
         my $wait_result = waitpid $process_id, 0;
-        if ( $wait_result == $WAITPID_ERROR ) {
+        if ($wait_result == $WAITPID_ERROR) {
             carp "Could not wait for cpan-audit process: $OS_ERROR";
         }
     }
@@ -149,11 +182,11 @@ sub find_vulnerabilities_for_module {
         $execution_error = $_;
     };
 
-    if ( defined $execution_error ) {
+    if (defined $execution_error) {
         chomp $execution_error;
         return [
             +{
-                type => 'error',
+                type        => 'error',
                 description =>
                   "Error: Failed to execute cpan-audit for module '$dependency->{module}': $execution_error",
             }
@@ -175,10 +208,14 @@ sub enrich_with_vulnerabilities {
     };
 }
 
+my $audit_dependencies_check = signature(positional => [DependencyList]);
+
 sub audit_dependencies {
     my ($dependencies) = @_;
 
-    return [ map { enrich_with_vulnerabilities($_) } @{$dependencies} ];
+    ($dependencies) = $audit_dependencies_check ->($dependencies);
+
+    return [map { enrich_with_vulnerabilities($_) } @{$dependencies}];
 }
 
 1;

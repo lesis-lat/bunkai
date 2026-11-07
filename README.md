@@ -200,6 +200,34 @@ The tool will exit with a non-zero status code if any warnings are issued, excep
 
 ---
 
+### Documentation
+
+The design of Bunkai is described in [docs/](docs/): how the modules are
+organised, the flow of a run through them, and what every component receives
+and returns.
+
+### Tests
+
+The suite is split by what each test proves, and each layer runs on its own:
+
+```bash
+prove -Ilib -Itests/lib -r tests/unit          # one module, in isolation
+prove -Ilib -Itests/lib -r tests/integration   # the real modules, together
+prove -Ilib -Itests/lib -r tests/e2e           # the program, as a user runs it
+```
+
+Mutation testing changes the source in small ways and reruns the suite, so a
+surviving mutant is a change no test objects to:
+
+```bash
+perl tests/mutation/run.pl --limit 40
+```
+
+The code follows the [LESIS Perl style guide](https://github.com/lesis-lat/perl-style-guide),
+enforced by `perltidy` and `Perl::Critic` in continuous integration.
+
+---
+
 ### Contribution
 
 Your contributions and suggestions are heartily ♥ welcome. Please, report bugs via the project's issues page and see the security policy for vulnerability disclosures. (✿ ◕‿◕)
