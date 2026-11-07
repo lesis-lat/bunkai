@@ -359,6 +359,31 @@ my @REJECTED_CASES = (
         error    => qr{\A line [ ] 3: [ ] unsupported [ ] character}xms,
     },
     +{
+        name     => 'a block without an opening brace',
+        cpanfile => "on test => sub requires 'A';\n",
+        error    => qr/\A line [ ] 1: [ ] expected [ ] '[{]'/xms,
+    },
+    +{
+        name     => 'a parenthesised block without a closing parenthesis',
+        cpanfile => "on('test', sub { requires 'A' };\n",
+        error    => qr{\A line [ ] 1: [ ] expected [ ] '[)]'}xms,
+    },
+    +{
+        name     => 'a parenthesised feature without a closing parenthesis',
+        cpanfile => "feature('name', sub { requires 'A' };\n",
+        error    => qr{\A line [ ] 1: [ ] expected [ ] '[)]'}xms,
+    },
+    +{
+        name     => 'a mirror without a quoted url',
+        cpanfile => "mirror cpan;\n",
+        error    => qr{\A line [ ] 1: [ ] expected [ ] a [ ] quoted}xms,
+    },
+    +{
+        name     => 'a parenthesised mirror without a closing parenthesis',
+        cpanfile => "mirror('https://cpan.example.org';\n",
+        error    => qr{\A line [ ] 1: [ ] expected [ ] '[)]'}xms,
+    },
+    +{
         name     => 'an invalid version string',
         cpanfile => "requires 'A', 'abc';\n",
         error    => qr{abc}xms,
