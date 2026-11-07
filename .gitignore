@@ -36,3 +36,7 @@ inc/
 
 # macOS system files
 .DS_Store
+
+# Carton
+/local/
+.claude/

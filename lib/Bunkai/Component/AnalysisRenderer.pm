@@ -4,35 +4,44 @@ use 5.034;
 use strict;
 use warnings;
 
-use Carp qw(croak);
-use English qw(-no_match_vars);
+use Carp     qw(croak);
+use English  qw(-no_match_vars);
 use Exporter qw(import);
 
 use Bunkai::Component::ReportGenerator qw(generate_report_for_dependency);
+use Type::Params                       qw(signature);
+
+use Bunkai::Types qw(DependencyList);
 
 our @EXPORT_OK = qw(render_analysis);
 our $VERSION   = '0.0.4';
 
+my $render_analysis_check = signature(positional => [DependencyList]);
+
 sub render_analysis {
     my ($dependencies) = @_;
+
+    ($dependencies) = $render_analysis_check ->($dependencies);
     my $exit_code = 0;
 
-    for my $dependency ( @{$dependencies} ) {
+    for my $dependency (@{$dependencies}) {
         my $version_display = 'not specified';
-        if ( $dependency->{has_version} ) {
-            $version_display = $dependency->{version};
+        if ($dependency -> {has_version}) {
+            $version_display = $dependency -> {version};
         }
-        printf {*STDOUT} "%-40s %s\n", $dependency->{module}, $version_display
+        printf {*STDOUT} "%-40s %s\n", $dependency -> {module},
+          $version_display
           or croak "Cannot print dependency info to STDOUT: $OS_ERROR";
 
-        my ( $report_lines, $has_issues ) = generate_report_for_dependency($dependency);
+        my ($report_lines, $has_issues) =
+          generate_report_for_dependency($dependency);
 
         if ($has_issues) {
             $exit_code = 1;
         }
 
-        if ( @{$report_lines} ) {
-            print {*STDOUT} join( "\n", @{$report_lines} ), "\n"
+        if (@{$report_lines}) {
+            print {*STDOUT} join("\n", @{$report_lines}), "\n"
               or croak "Cannot print report to STDOUT: $OS_ERROR";
         }
     }
