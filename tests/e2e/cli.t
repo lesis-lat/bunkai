@@ -60,7 +60,7 @@ sub read_json {
     return decode_json($content);
 }
 
-plan tests => 5;
+plan tests => 6;
 
 subtest 'the banner documents the interface' => sub {
     plan tests => 4;
@@ -90,6 +90,24 @@ subtest 'a directory without a cpanfile is refused' => sub {
 
     like($result -> {output},
         qr/cpanfile/ixms, 'the missing cpanfile is named');
+};
+
+subtest 'a cpanfile with code is refused without running it' => sub {
+    plan tests => 3;
+
+    my $markers = Bunkai::Test::Directory -> new();
+    my $marker  = File::Spec              -> catfile($markers, 'executed');
+    my $project = project_with(
+        "open my \$handle, '>', '$marker';\nrequires 'Try::Tiny';\n");
+    my $result = run_bunkai('--path', $project);
+
+    is($result -> {status}, 1, 'the scan fails');
+    like(
+        $result -> {output},
+        qr/cannot\sread.*line\s1:\sunsupported\scharacter/xms,
+        'the offending line is named'
+    );
+    ok(!-e $marker, 'the cpanfile is never executed');
 };
 
 subtest 'a dependency without a version is reported' => sub {

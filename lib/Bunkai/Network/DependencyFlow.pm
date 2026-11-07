@@ -30,6 +30,17 @@ sub parse_project_dependencies {
     my ($project_path) = @_;
 
     my $parser_result = parse_cpanfile($project_path);
+    if (  !$parser_result -> {success}
+        && $parser_result -> {reason} eq 'cpanfile_invalid')
+    {
+        return +{
+            success   => 0,
+            exit_code => 1,
+            message   =>
+              "Error: cannot read '$parser_result->{cpanfile_path}': $parser_result->{error}",
+        };
+    }
+
     if (!$parser_result -> {success}) {
         return +{
             success   => 0,

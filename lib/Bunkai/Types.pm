@@ -85,6 +85,7 @@ declare ParserResult,
     data          => DependencyList,
     cpanfile_path => Str,
     reason        => Optional [Str],
+    error         => Optional [Str],
   ];
 
 declare FlowResult,

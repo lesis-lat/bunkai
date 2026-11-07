@@ -152,6 +152,65 @@ subtest 'reports a missing cpanfile' => sub {
     );
 };
 
+subtest 'refuses a cpanfile that contains executable code' => sub {
+    my $directory              = tempdir(CLEANUP => 1);
+    my $marker                 = path($directory) -> child('executed');
+    my $directory_for_cpanfile = path($directory) -> child('project');
+    $directory_for_cpanfile -> mkpath;
+    $directory_for_cpanfile -> child('cpanfile')
+      -> spew(
+        "open my \$handle, '>', '$marker';\nrequires 'Alpha', '1.00';\n");
+
+    my ($result) =
+      run_flow_capturing(
+        project_path => $directory_for_cpanfile -> stringify);
+
+    is($result -> {success},   0, 'Marks the run as unsuccessful');
+    is($result -> {exit_code}, 1, 'Reports a failing exit code');
+    like(
+        $result -> {message},
+        qr{cannot \s read .* line \s 1}xms,
+        'Explains where the cpanfile could not be read'
+    );
+    ok(!-e $marker, 'Never executes the cpanfile');
+};
+
+subtest 'writes no reports for an unreadable cpanfile' => sub {
+    my $directory  = build_project("requires \$module;\n");
+    my $sarif_file = path($directory) -> child('results.sarif');
+    my $plan_file  = path($directory) -> child('plan.json');
+
+    my ($result, $output) = run_flow_capturing(
+        project_path      => $directory,
+        sarif_output_file => $sarif_file -> stringify,
+        plan_updates_file => $plan_file  -> stringify,
+        update_cpanfile   => 1,
+    );
+
+    is($result      -> {success},   0, 'Marks the run as unsuccessful');
+    is($result      -> {exit_code}, 1, 'Keeps the failing exit code');
+    ok(!$sarif_file -> exists, 'Writes no SARIF report');
+    ok(!$plan_file  -> exists, 'Writes no updates plan');
+    is(
+        path($directory) -> child('cpanfile') -> slurp,
+        "requires \$module;\n",
+        'Leaves the cpanfile untouched'
+    );
+    is($output, q{}, 'Renders no analysis');
+};
+
+subtest 'reports an invalid version in the cpanfile' => sub {
+    my $directory = build_project("requires 'Alpha', 'not-a-version';\n");
+    my ($result) = run_flow_capturing(project_path => $directory);
+
+    is($result -> {exit_code}, 1, 'Reports a failing exit code');
+    like(
+        $result -> {message},
+        qr{\A Error: \s cannot \s read .* not-a-version}xms,
+        'Names the invalid version'
+    );
+};
+
 subtest 'analyses a project and fails on findings' => sub {
     my $directory = build_project("requires 'Alpha', '1.00';\n");
     my ($result, $output) = run_flow_capturing(project_path => $directory);

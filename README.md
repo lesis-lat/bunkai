@@ -17,6 +17,8 @@
 
 Bunkai (分解, "analysis/to break down") is a simple, deterministic Software Composition Analysis (SCA) tool for Perl projects. It operates entirely by parsing a project's `cpanfile` to identify dependencies and their specified versions.
 
+Bunkai reads the `cpanfile` as data and never executes it, so scanning an untrusted project (for example, a pull request) cannot run its code. It understands the literal cpanfile DSL: `requires`, `recommends`, `suggests`, `conflicts`, the `*_requires` shortcuts, `on`, `feature` and `mirror`, with quoted strings or numbers as arguments. A `cpanfile` that uses any other Perl (variables, conditionals, function calls, `BEGIN` blocks, interpolated strings) is rejected with an error naming the offending line.
+
 Designed with the principles of Flow-Based Programming, Bunkai provides multi-faceted dependency analysis including:
 * Identifying all modules and their versions.
 * Warning when version specifications are missing, which can lead to build instability and supply chain risks.
