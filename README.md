@@ -17,6 +17,8 @@
 
 Bunkai (分解, "analysis/to break down") is a simple, deterministic Software Composition Analysis (SCA) tool for Perl projects. It operates entirely by parsing a project's `cpanfile` to identify dependencies and their specified versions.
 
+Bunkai reads the `cpanfile` as data and never executes it, so scanning an untrusted project (for example, a pull request) cannot run its code. It understands the literal cpanfile DSL: `requires`, `recommends`, `suggests`, `conflicts`, the `*_requires` shortcuts, `on`, `feature` and `mirror`, with quoted strings or numbers as arguments. A `cpanfile` that uses any other Perl (variables, conditionals, function calls, `BEGIN` blocks, interpolated strings) is rejected with an error naming the offending line.
+
 Designed with the principles of Flow-Based Programming, Bunkai provides multi-faceted dependency analysis including:
 * Identifying all modules and their versions.
 * Warning when version specifications are missing, which can lead to build instability and supply chain risks.
@@ -123,6 +125,7 @@ jobs:
           dedupe-updates: true
 
       - name: Upload SARIF to GitHub
+        if: ${{ !cancelled() && hashFiles('bunkai-results.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bunkai-results.sarif
@@ -196,7 +199,37 @@ Net-CIDR-Set (requires 0.13) has 1 advisory
     https://metacpan.org/release/RRWO/Net-CIDR-Set-0.14/changes
 ```
 
-The tool will exit with a non-zero status code if any warnings are issued, except when generating SARIF output.
+The tool will exit with a non-zero status code if any warnings are issued, including when generating SARIF output. Only the update operations (`--update-cpanfile`, `--plan-updates`, `--apply-update-id`) exit with zero after findings, because they are maintenance steps rather than gates.
+
+Because a scan with findings fails its step, run the SARIF upload with `if: ${{ !cancelled() && hashFiles('bunkai-results.sarif') != '' }}` so findings still reach the Security tab, as in the workflow above.
+
+---
+
+### Documentation
+
+The design of Bunkai is described in [docs/](docs/): how the modules are
+organised, the flow of a run through them, and what every component receives
+and returns.
+
+### Tests
+
+The suite is split by what each test proves, and each layer runs on its own:
+
+```bash
+prove -Ilib -Itests/lib -r tests/unit          # one module, in isolation
+prove -Ilib -Itests/lib -r tests/integration   # the real modules, together
+prove -Ilib -Itests/lib -r tests/e2e           # the program, as a user runs it
+```
+
+Mutation testing changes the source in small ways and reruns the suite, so a
+surviving mutant is a change no test objects to:
+
+```bash
+perl tests/mutation/run.pl --limit 40
+```
+
+The code follows the [LESIS Perl style guide](https://github.com/lesis-lat/perl-style-guide),
+enforced by `perltidy` and `Perl::Critic` in continuous integration.
 
 ---
 

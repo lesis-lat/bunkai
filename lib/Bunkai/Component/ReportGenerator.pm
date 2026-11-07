@@ -4,7 +4,10 @@ use 5.034;
 use strict;
 use warnings;
 
-use Exporter qw(import);
+use Exporter     qw(import);
+use Type::Params qw(signature);
+
+use Bunkai::Types qw(Dependency);
 
 our @EXPORT_OK = qw(generate_report_for_dependency);
 our $VERSION   = '0.0.4';
@@ -12,7 +15,7 @@ our $VERSION   = '0.0.4';
 sub is_advisory_db_miss_error {
     my ($description) = @_;
 
-    if ( !defined $description ) {
+    if (!defined $description) {
         return 0;
     }
 
@@ -21,8 +24,13 @@ sub is_advisory_db_miss_error {
     }xms;
 }
 
+my $generate_report_for_dependency_check =
+  signature(positional => [Dependency]);
+
 sub generate_report_for_dependency {
     my ($dependency) = @_;
+
+    ($dependency) = $generate_report_for_dependency_check ->($dependency);
 
     my @report_lines;
     my $should_fail = 0;
@@ -31,48 +39,63 @@ sub generate_report_for_dependency {
     my @security_lines;
     my @error_lines;
 
-    if ( !$dependency->{has_version} ) {
-        $warning_line = "WARNING: Module '$dependency->{module}' has no version specified.";
-        $should_fail  = 1;
-    }
-
-    if ( $dependency->{has_version} && $dependency->{is_outdated} ) {
+    if (!$dependency -> {has_version}) {
         $warning_line =
-          sprintf q{WARNING: Module '%s' is outdated. Specified: %s, Latest: %s},
-          $dependency->{module}, $dependency->{version}, $dependency->{latest_version};
+          "WARNING: Module '$dependency->{module}' has no version specified.";
         $should_fail = 1;
     }
 
-    if ( $dependency->{has_version} && !defined $dependency->{latest_version} ) {
-        $warning_line = sprintf q{WARNING: Could not fetch latest version for '%s'.}, $dependency->{module};
+    if ($dependency -> {has_version} && $dependency -> {is_outdated}) {
+        $warning_line =
+          sprintf
+          q{WARNING: Module '%s' is outdated. Specified: %s, Latest: %s},
+          $dependency -> {module}, $dependency -> {version},
+          $dependency -> {latest_version};
+        $should_fail = 1;
     }
 
-    if ( $dependency->{has_vulnerabilities} ) {
-        for my $vulnerability ( @{ $dependency->{vulnerabilities} } ) {
-            if ( $vulnerability->{type} eq 'error' ) {
-                if ( is_advisory_db_miss_error( $vulnerability->{description} ) ) {
+    if ($dependency -> {has_version}
+        && !defined $dependency -> {latest_version})
+    {
+        $warning_line =
+          sprintf q{WARNING: Could not fetch latest version for '%s'.},
+          $dependency -> {module};
+    }
+
+    if ($dependency -> {has_vulnerabilities}) {
+        for my $vulnerability (@{$dependency -> {vulnerabilities}}) {
+            if ($vulnerability -> {type} eq 'error') {
+                if (
+                    is_advisory_db_miss_error(
+                        $vulnerability -> {description}
+                    )
+                  )
+                {
                     next;
                 }
-                push @error_lines, $vulnerability->{description};
+                push @error_lines, $vulnerability -> {description};
                 $should_fail = 1;
                 next;
             }
 
             $should_fail = 1;
-            if ( !$suggest_line && defined $vulnerability->{fixed_version} ) {
+            if (!$suggest_line && defined $vulnerability -> {fixed_version}) {
                 $suggest_line =
-                  sprintf 'SUGGEST: Upgrade to version %s or later.', $vulnerability->{fixed_version};
+                  sprintf 'SUGGEST: Upgrade to version %s or later.',
+                  $vulnerability -> {fixed_version};
             }
 
-            my $security_report = sprintf "SECURITY: Module '%s' has vulnerability %s:\n%s",
-              $dependency->{module}, $vulnerability->{cve_id}, $vulnerability->{description};
+            my $security_report =
+              sprintf "SECURITY: Module '%s' has vulnerability %s:\n%s",
+              $dependency -> {module}, $vulnerability -> {cve_id},
+              $vulnerability -> {description};
             push @security_lines, $security_report;
         }
     }
 
-    if ( !$suggest_line && $dependency->{is_outdated} ) {
-        $suggest_line =
-          sprintf 'SUGGEST: Upgrade to version %s or later.', $dependency->{latest_version};
+    if (!$suggest_line && $dependency -> {is_outdated}) {
+        $suggest_line = sprintf 'SUGGEST: Upgrade to version %s or later.',
+          $dependency -> {latest_version};
     }
 
     if ($warning_line) {
@@ -91,7 +114,7 @@ sub generate_report_for_dependency {
         push @report_lines, @error_lines;
     }
 
-    return ( \@report_lines, $should_fail );
+    return (\@report_lines, $should_fail);
 }
 
 1;

@@ -1,9 +1,14 @@
 severity = 1
 
-[-CodeLayout::RequireTidyCode]
 [-TestingAndDebugging::RequireUseStrict]
 [-TestingAndDebugging::RequireUseWarnings]
 
+[CodeLayout::RequireTidyCode]
+perltidyrc = .perltidyrc
+
+[TestingAndDebugging::ProhibitNoWarnings]
+allow = once
+
 [InputOutput::RequireCheckedSyscalls]
 functions = :builtins
-exclude_functions = print say system
+exclude_functions = print say system sleep

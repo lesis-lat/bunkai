@@ -1,0 +1,35 @@
+name: Mutation Testing
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'How many mutants to run'
+        required: false
+        default: '80'
+
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y perl cpanminus
+        sudo cpanm --installdeps --notest --with-develop .
+        sudo cpanm --notest Devel::Mutator
+
+    - name: Run the mutation suite
+      env:
+        MUTANT_LIMIT: ${{ github.event.inputs.limit || '80' }}
+      run: perl tests/mutation/run.pl --limit "$MUTANT_LIMIT" --minimum 85
