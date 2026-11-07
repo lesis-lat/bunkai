@@ -60,7 +60,7 @@ sub read_json {
     return decode_json($content);
 }
 
-plan tests => 6;
+plan tests => 7;
 
 subtest 'the banner documents the interface' => sub {
     plan tests => 4;
@@ -147,7 +147,7 @@ subtest 'the sarif report is well formed' => sub {
     my $result  = run_bunkai('--path', $project, "--sarif=$report");
 
     is($result -> {status},
-        0, 'writing a report forces a success exit so the upload still runs');
+        1, 'writing a report keeps the failing exit for findings');
     ok(-f $report, 'the report file is created');
 
     my $document = read_json($report);
@@ -165,4 +165,17 @@ subtest 'the sarif report is well formed' => sub {
 
     is($without_report -> {status},
         1, 'the same project still closes the gate without a report');
+};
+
+subtest 'a clean project passes while writing a sarif report' => sub {
+    plan tests => 3;
+
+    my $project = project_with(q{});
+    my $report  = File::Spec -> catfile($project, 'result.sarif');
+    my $result  = run_bunkai('--path', $project, "--sarif=$report");
+
+    is($result -> {status}, 0, 'the gate stays open without findings');
+    ok(-f $report, 'the report file is created');
+    is_deeply(read_json($report) -> {runs}[0]{results},
+        [], 'the report has no results');
 };

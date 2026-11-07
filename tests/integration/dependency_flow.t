@@ -376,7 +376,7 @@ subtest 'writes a SARIF report' => sub {
     );
 
     is($result -> {exit_code},
-        0, 'Forces a successful exit code when writing SARIF');
+        1, 'Keeps the failing exit code for an advisory when writing SARIF');
 
     my $document = JSON::PP -> new -> decode($sarif_file -> slurp);
     is($document -> {runs}[0]{results}[0]{ruleId},
@@ -391,10 +391,128 @@ subtest 'writes a SARIF report to the default file name' => sub {
         sarif_output_file => q{},
     );
 
-    is($result -> {exit_code}, 0, 'Forces a successful exit code');
+    is($result -> {exit_code}, 1, 'Keeps the failing exit code');
     ok(path($directory) -> child('bunkai_results.sarif') -> is_file,
         'Falls back to bunkai_results.sarif');
 };
+
+subtest 'fails a SARIF scan with an outdated dependency' => sub {
+    my $directory  = build_project("requires 'Alpha', '1.00';\n");
+    my $sarif_file = path($directory) -> child('results.sarif');
+
+    my ($result, $output) = run_flow_capturing(
+        project_path      => $directory,
+        sarif_output_file => $sarif_file -> stringify,
+    );
+
+    is($result     -> {exit_code}, 1, 'Reports a failing exit code');
+    ok($sarif_file -> is_file, 'Still writes the SARIF report');
+    like(
+        $output,
+        qr{WARNING: \s Module \s 'Alpha' \s is \s outdated}xms,
+        'Still renders the finding'
+    );
+};
+
+subtest 'fails a SARIF scan with an unversioned dependency' => sub {
+    my $directory  = build_project("requires 'Beta';\n");
+    my $sarif_file = path($directory) -> child('results.sarif');
+
+    my ($result) = run_flow_capturing(
+        project_path      => $directory,
+        sarif_output_file => $sarif_file -> stringify,
+    );
+
+    is($result -> {exit_code}, 1, 'Reports a failing exit code');
+    my $document = JSON::PP -> new -> decode($sarif_file -> slurp);
+    is($document -> {runs}[0]{results}[0]{ruleId},
+        'BUNKAI-UNPINNED', 'Reports the unpinned dependency in SARIF');
+};
+
+subtest 'passes a clean SARIF scan' => sub {
+    my $directory  = build_project("requires 'Beta', '1.00';\n");
+    my $sarif_file = path($directory) -> child('results.sarif');
+
+    my ($result) = run_flow_capturing(
+        project_path      => $directory,
+        sarif_output_file => $sarif_file -> stringify,
+    );
+
+    is($result -> {exit_code}, 0, 'Reports a successful exit code');
+    my $document = JSON::PP -> new -> decode($sarif_file -> slurp);
+    is_deeply($document -> {runs}[0]{results},
+        [], 'Writes a SARIF report without results');
+};
+
+subtest 'gives the same verdict with and without SARIF' => sub {
+    foreach my $cpanfile (
+        "requires 'Alpha', '1.00';\n",
+        "requires 'Beta';\n",
+        "requires 'Gamma', '3.00';\n",
+        "requires 'Beta', '1.00';\n",
+      )
+    {
+        my $directory      = build_project($cpanfile);
+        my ($plain_result) = run_flow_capturing(project_path => $directory);
+        my ($sarif_result) = run_flow_capturing(
+            project_path      => $directory,
+            sarif_output_file =>
+              path($directory) -> child('results.sarif') -> stringify,
+        );
+
+        is(
+            $sarif_result -> {exit_code},
+            $plain_result -> {exit_code},
+            "Matches the plain scan for $cpanfile"
+        );
+    }
+};
+
+subtest 'fails a SARIF scan without a cpanfile' => sub {
+    my $directory  = tempdir(CLEANUP => 1);
+    my $sarif_file = path($directory) -> child('results.sarif');
+
+    my ($result) = run_flow_capturing(
+        project_path      => $directory,
+        sarif_output_file => $sarif_file -> stringify,
+    );
+
+    is($result      -> {exit_code}, 1, 'Reports a failing exit code');
+    ok(!$sarif_file -> exists, 'Writes no SARIF report');
+};
+
+subtest 'fails loudly when the SARIF report cannot be written' => sub {
+    my $directory = build_project("requires 'Beta', '1.00';\n");
+
+    ok(
+        exception {
+            run_flow_capturing(
+                project_path      => $directory,
+                sarif_output_file => path($directory)
+                  -> child('missing')
+                  -> child('results.sarif')
+                  -> stringify,
+            );
+        },
+        'Raises an error for an unwritable SARIF path'
+    );
+};
+
+subtest 'keeps forcing success for update operations combined with SARIF' =>
+  sub {
+    my $directory = build_project("requires 'Alpha', '1.00';\n");
+
+    my ($result) = run_flow_capturing(
+        project_path      => $directory,
+        sarif_output_file =>
+          path($directory) -> child('results.sarif') -> stringify,
+        plan_updates_file =>
+          path($directory) -> child('plan.json') -> stringify,
+    );
+
+    is($result -> {exit_code}, 0,
+        'Planning updates still exits successfully');
+  };
 
 subtest 'treats an empty issue id as no issue-scoped update' => sub {
     my $directory = build_project("requires 'Alpha', '1.00';\n");

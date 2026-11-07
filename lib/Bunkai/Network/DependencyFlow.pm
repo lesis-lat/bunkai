@@ -175,13 +175,9 @@ sub write_sarif_if_requested {
 }
 
 sub should_force_success_exit {
-    my (
-        $sarif_output_file, $update_cpanfile,
-        $plan_updates_file, $apply_update_id
-    ) = @_;
+    my ($update_cpanfile, $plan_updates_file, $apply_update_id) = @_;
 
-    if (   defined $sarif_output_file
-        || $update_cpanfile
+    if (   $update_cpanfile
         || (defined $plan_updates_file)
         || (defined $apply_update_id && length $apply_update_id))
     {
@@ -239,8 +235,7 @@ sub run_flow {
     my $exit_code = render_analysis($audited_dependencies);
     if (
         should_force_success_exit(
-            $sarif_output_file, $update_cpanfile,
-            $plan_updates_file, $apply_update_id
+            $update_cpanfile, $plan_updates_file, $apply_update_id
         )
       )
     {

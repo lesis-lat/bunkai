@@ -142,12 +142,17 @@ in opposite directions.
 A plain run is a gate: it exits `1` when a dependency is outdated or carries an
 advisory, so a pipeline stops on a finding.
 
-A run that was asked to produce an artefact exits `0` even when it found
-something. `--sarif`, `--update-cpanfile`, `--plan-updates` and
-`--apply-update-id` all force a success exit, because the artefact is the
-deliverable. Failing the step would stop the workflow before the report is
-uploaded or the pull request is opened, which hides exactly the finding the
-run was meant to surface.
+Writing a report never changes that verdict. `--sarif` is an output format,
+not a policy, so a scan with findings still exits `1` after the SARIF file is
+written. Workflows that upload the report run the upload step with
+`if: ${{ !cancelled() && hashFiles('bunkai-results.sarif') != '' }}`, so the
+finding reaches the Security tab and the gate still fails.
+
+The maintenance operations `--update-cpanfile`, `--plan-updates` and
+`--apply-update-id` exit `0` even when they found something, because their
+deliverable is the change itself and the orchestrated flow keeps the status of
+its separate scan.
 
 `should_force_success_exit` in `Bunkai::Network::DependencyFlow` holds that
-rule, and `tests/e2e/cli.t` asserts both halves of it.
+rule, and `tests/integration/dependency_flow.t` and `tests/e2e/cli.t` assert
+it.

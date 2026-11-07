@@ -125,6 +125,7 @@ jobs:
           dedupe-updates: true
 
       - name: Upload SARIF to GitHub
+        if: ${{ !cancelled() && hashFiles('bunkai-results.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bunkai-results.sarif
@@ -198,7 +199,9 @@ Net-CIDR-Set (requires 0.13) has 1 advisory
     https://metacpan.org/release/RRWO/Net-CIDR-Set-0.14/changes
 ```
 
-The tool will exit with a non-zero status code if any warnings are issued, except when generating SARIF output.
+The tool will exit with a non-zero status code if any warnings are issued, including when generating SARIF output. Only the update operations (`--update-cpanfile`, `--plan-updates`, `--apply-update-id`) exit with zero after findings, because they are maintenance steps rather than gates.
+
+Because a scan with findings fails its step, run the SARIF upload with `if: ${{ !cancelled() && hashFiles('bunkai-results.sarif') != '' }}` so findings still reach the Security tab, as in the workflow above.
 
 ---
 
